@@ -70,12 +70,17 @@ export const handleDeleteConversationById = async (req, res, next) => {
       userId,
       id
     );
-    res.status(204);
+    res.sendStatus(204);
   } catch (error) {
     console.error(
       "[ConversationController - DeleteConversationById] Error:",
       error
     );
+
+    if (error.message === "Conversation not found or user unauthorized.") {
+      return res.status(404).json({ message: "Conversation not found." });
+    }
+
     next(error);
   }
 };

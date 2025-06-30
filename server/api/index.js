@@ -1,5 +1,6 @@
 import { Router } from "express";
 import authRoutes from "#api/auth/auth.route";
+import conversationRoutes from "#api/conversations/conversation.route";
 
 const router = Router();
 
@@ -12,5 +13,5 @@ router.get("/", (req, res) => {
 
 // Resource specific routes
 router.use("/auth", authRoutes);
-
+router.use("/conversations", conversationRoutes);
 export default router;

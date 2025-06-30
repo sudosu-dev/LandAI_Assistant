@@ -29,14 +29,17 @@ export const createConversation = async (userId, title) => {
   return newConversation;
 };
 
-export const getConversationsById = async (userId, id) => {
+export const getConversationById = async (userId, id) => {
   const query = `
-        SELECT id, title, created_at FROM conversations WHERE user_id = $1 AND id = $2
+        SELECT id, title, created_at, updated_at 
+        FROM conversations 
+        WHERE user_id = $1 AND id = $2
     `;
   const values = [userId, id];
 
   const { rows } = await pool.query(query, values);
-  return rows;
+
+  return rows[0] || null;
 };
 
 export const deleteConversationById = async (userId, id) => {
