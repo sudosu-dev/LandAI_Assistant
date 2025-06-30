@@ -3,10 +3,10 @@ import * as conversationService from "#api/conversations/conversation.service";
 export const handleGetConversationsByUserId = async (req, res, next) => {
   try {
     const { userId } = req.user;
-    const convesation = await conversationService.getConversationsByUserId(
+    const conversations = await conversationService.getConversationsByUserId(
       userId
     );
-    res.status(200).json(convesation);
+    res.status(200).json(conversations);
   } catch (error) {
     console.error(
       "[ConversationController - GetConversationByUserId] Error:",
