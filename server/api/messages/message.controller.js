@@ -7,7 +7,7 @@ import { authenticateToken } from "#middleware/auth.middleware";
 export const handleGetMessagesByConversationId = async (req, res, next) => {
   try {
     const { userId } = req.user;
-    const { conversationId } = req.params;
+    const { id: conversationId } = req.params;
     const messages = await getMessagesByConversationId(userId, conversationId);
     res.status(200).json(messages);
   } catch (error) {
@@ -21,11 +21,20 @@ export const handleGetMessagesByConversationId = async (req, res, next) => {
 
 export const handleCreateMessage = async (req, res, next) => {
   try {
-    const { userId } = req.user;
+    // --- DEBUGGING STEP ---
+    // Let's log the exact data we're receiving right before we use it.
+    console.log("--- DEBUGGING handleCreateMessage ---");
+    console.log("req.user (from token):", req.user);
+    console.log("req.params (from URL):", req.params);
+    console.log("------------------------------------");
+    // --- END DEBUGGING STEP ---
+    const { userId, roleId } = req.user;
+    const { id: conversationId } = req.params;
+    const { content } = req.body;
     const messageData = {
-      conversationId: req.params.conversationId,
-      roleId: req.user.roleId,
-      content: req.body.content,
+      conversationId,
+      roleId,
+      content,
       agentType: null,
     };
     const message = await createMessage(userId, messageData);
