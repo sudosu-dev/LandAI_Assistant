@@ -28,3 +28,12 @@ export const postMessage = async (conversationId, prompt) => {
   });
   return response.data;
 };
+
+/**
+ * Creates a new conversation
+ * @param {string} title - The title for the new conversation
+ */
+export const createConversation = async (title) => {
+  const response = await api.post("/conversations", { title });
+  return response.data;
+};
