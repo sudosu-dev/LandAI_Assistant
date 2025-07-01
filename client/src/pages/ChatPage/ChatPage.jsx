@@ -158,38 +158,42 @@ export default function ChatPage() {
       </div>
 
       <div className={styles.main}>
-        <h1>LandAI Assistant</h1>
-        <ul className={styles.feed}>
-          {chatFeed.length > 0 ? (
-            chatFeed.map((message, index) => (
+        <div className={styles.header}>
+          <h1>LandAI Assistant</h1>
+        </div>
+        <div className={styles.chatContainer}>
+          <ul className={styles.feed}>
+            {chatFeed.length > 0 ? (
+              chatFeed.map((message, index) => (
+                <li
+                  key={index}
+                  className={`${styles.chatMessage} ${
+                    message.role_id === user.roleId
+                      ? styles.user
+                      : styles.assistant
+                  }`}
+                >
+                  <p>{message.content}</p>
+                </li>
+              ))
+            ) : (
               <li
-                key={index}
-                className={`${styles.chatMessage} ${
-                  message.role_id === user.roleId
-                    ? styles.user
-                    : styles.assistant
-                }`}
+                style={{
+                  color: "#888",
+                  fontStyle: "italic",
+                  textAlign: "center",
+                  listStyle: "none",
+                  padding: "20px",
+                }}
               >
-                <p>{message.content}</p>
+                Welcome! Send a message to start your first conversation.
               </li>
-            ))
-          ) : (
-            <li
-              style={{
-                color: "#888",
-                fontStyle: "italic",
-                textAlign: "center",
-                listStyle: "none",
-                padding: "20px",
-              }}
-            >
-              Welcome! Send a message to start your first conversation.
-            </li>
-          )}
-          {isLoadingMessages && (
-            <li className={styles.loadingMessage}>Thinking...</li>
-          )}
-        </ul>
+            )}
+            {isLoadingMessages && (
+              <li className={styles.loadingMessage}>Thinking...</li>
+            )}
+          </ul>
+        </div>
         <div className={styles.bottomSection}>
           <div className={styles.inputContainer}>
             <input
