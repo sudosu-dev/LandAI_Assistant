@@ -21,13 +21,6 @@ export const handleGetMessagesByConversationId = async (req, res, next) => {
 
 export const handleCreateMessage = async (req, res, next) => {
   try {
-    // --- DEBUGGING STEP ---
-    // Let's log the exact data we're receiving right before we use it.
-    console.log("--- DEBUGGING handleCreateMessage ---");
-    console.log("req.user (from token):", req.user);
-    console.log("req.params (from URL):", req.params);
-    console.log("------------------------------------");
-    // --- END DEBUGGING STEP ---
     const { userId, roleId } = req.user;
     const { id: conversationId } = req.params;
     const { content } = req.body;
