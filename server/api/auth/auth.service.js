@@ -236,3 +236,19 @@ export const resetPassword = async (resetData) => {
     `[AuthService - ResetPassword] Password successfully reset for user ${userId}`
   );
 };
+
+/**
+ * Gets user data by ID for token verification
+ */
+export const getUserById = async (userId) => {
+  const userQuery = await pool.query(
+    "SELECT id, email, role_id, first_name, last_name FROM users WHERE id = $1",
+    [userId]
+  );
+
+  if (userQuery.rows.length === 0) {
+    throw new Error("User not found");
+  }
+
+  return toCamelCase(userQuery.rows[0]);
+};

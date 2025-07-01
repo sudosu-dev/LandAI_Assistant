@@ -5,11 +5,10 @@ import {
   handleUserLogout,
   handleRequestPasswordReset,
   handleResetPassword,
+  handleVerifyToken,
 } from "#api/auth/auth.controller";
 
 import { authenticateToken } from "#middleware/auth.middleware";
-
-// import * as AuthController from '../components/auth/auth.controller';
 
 const router = Router();
 
@@ -20,6 +19,7 @@ router.post("/request-password-reset", handleRequestPasswordReset);
 router.post("/reset-password", handleResetPassword);
 
 // --- Protected Routes ---
-router.post("/logout", authenticateToken, handleUserLogout); // << USE authenticateToken here
+router.post("/logout", authenticateToken, handleUserLogout);
+router.get("/verify", authenticateToken, handleVerifyToken);
 
 export default router;

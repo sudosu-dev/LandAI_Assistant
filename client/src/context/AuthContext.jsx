@@ -74,11 +74,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
-  // send logout event to axios
-  useEffect(() => {
-    setLogoutCallback(logout);
-  }, [logout]);
-
   const register = async (credentials) => {
     try {
       setIsLoading(true);
@@ -105,7 +100,6 @@ export const AuthProvider = ({ children }) => {
     try {
       setIsLoading(true);
       setError(null);
-
       const data = await authService.login(credentials);
 
       if (!data.token || !data.user) {
@@ -158,6 +152,11 @@ export const AuthProvider = ({ children }) => {
       setIsLoading(false);
     }
   }, [token]);
+
+  // send logout event to axios
+  useEffect(() => {
+    setLogoutCallback(logout);
+  }, [logout]);
 
   // Check if user is authenticated
   const isAuthenticated = Boolean(user && token);

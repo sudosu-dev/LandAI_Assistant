@@ -157,3 +157,27 @@ export const handleUserLogout = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Handles token verification and returns current user data.
+ */
+export const handleVerifyToken = async (req, res, next) => {
+  try {
+    const { userId, roleId } = req.user;
+
+    const userData = await authService.getUserById(userId);
+
+    res.status(200).json({
+      user: {
+        userId: userData.id,
+        email: userData.email,
+        roleId: userData.roleId,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+      },
+    });
+  } catch (error) {
+    console.error("[AuthController - VerifyToken] Error:", error);
+    res.status(401).json({ message: "Token verification failed" });
+  }
+};
