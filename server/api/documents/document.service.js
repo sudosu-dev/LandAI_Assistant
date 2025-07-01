@@ -2,6 +2,8 @@ import pool from "#db/client";
 import fs from "fs/promises";
 import path from "path";
 import { toCamelCase } from "#utils/object.utils";
+import { processDocument } from "#api/documents/document-processing.service";
+import * as messageService from "#api/messages/message.service";
 
 /**
  * Saves a new document's metadata to the database.
@@ -36,8 +38,97 @@ export const createDocument = async (userId, documentData) => {
     throw new Error("Failed to save document metadata to the database.");
   }
 
+  // Process the document and post analysis to chat
+  processDocumentAndNotify(
+    userId,
+    conversationId,
+    filename,
+    filePath,
+    fileType
+  );
+
   return toCamelCase(newDocument);
 };
+
+/**
+ * Process document and post analysis results to chat
+ */
+async function processDocumentAndNotify(
+  userId,
+  conversationId,
+  filename,
+  filePath,
+  fileType
+) {
+  try {
+    console.log(`Starting document processing for: ${filename}`);
+
+    const processedData = await processDocument(filePath, fileType);
+
+    console.log("Document processed successfully:", {
+      filename,
+      textLength: processedData.text.length,
+      leaseTerms: processedData.leaseTerms,
+    });
+
+    // Get assistant role ID
+    const roleResult = await pool.query(
+      "SELECT id FROM roles WHERE name = 'assistant'"
+    );
+    if (roleResult.rows.length === 0) {
+      throw new Error("Assistant role not found in database");
+    }
+    const assistantRoleId = roleResult.rows[0].id;
+
+    // Create analysis message content
+    let analysisContent = `📄 **Document Analysis: ${filename}**\n\n`;
+
+    if (processedData.summary) {
+      analysisContent += processedData.summary;
+    } else {
+      analysisContent += `✅ Successfully processed ${filename}\n`;
+      analysisContent += `📊 Extracted ${processedData.text.length} characters of text\n\n`;
+
+      if (fileType === "application/pdf") {
+        analysisContent += `This appears to be a general document. If this is a lease document, I can help analyze specific terms if you ask me questions about it.`;
+      }
+    }
+
+    // Post analysis message to chat
+    const messageData = {
+      conversationId,
+      roleId: assistantRoleId,
+      content: analysisContent,
+      agentType: "lease_analyzer",
+    };
+
+    await messageService.createMessage(userId, messageData);
+    console.log(`Analysis posted to chat for: ${filename}`);
+  } catch (error) {
+    console.error("Document processing failed:", error);
+
+    // Post error message to chat
+    try {
+      const roleResult = await pool.query(
+        "SELECT id FROM roles WHERE name = 'assistant'"
+      );
+      if (roleResult.rows.length > 0) {
+        const assistantRoleId = roleResult.rows[0].id;
+
+        const errorMessage = {
+          conversationId,
+          roleId: assistantRoleId,
+          content: `❌ Failed to process ${filename}. ${error.message}`,
+          agentType: "coordinator",
+        };
+
+        await messageService.createMessage(userId, errorMessage);
+      }
+    } catch (notificationError) {
+      console.error("Failed to post error notification:", notificationError);
+    }
+  }
+}
 
 /**
  * Retrieves a list of all documents for a specific user.
