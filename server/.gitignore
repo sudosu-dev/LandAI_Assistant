@@ -1,3 +1,4 @@
 node_modules
 .env
 ignore_folder
+server/uploads/*.pdf
