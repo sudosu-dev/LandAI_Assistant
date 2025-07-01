@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import * as conversationService from "../../services/conversationService";
+import FileUploadModal from "../../components/FileUploadModal/FileUploadModal";
 import styles from "./ChatPage.module.css";
 
 export default function ChatPage() {
@@ -11,6 +12,7 @@ export default function ChatPage() {
   const [chatFeed, setChatFeed] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Only fetch conversations when user is authenticated and not loading
   useEffect(() => {
@@ -106,6 +108,18 @@ export default function ChatPage() {
     }
   };
 
+  const handleFileUpload = (uploadResult) => {
+    console.log("handleFileUpload called with:", uploadResult); // debug log
+
+    console.log("File uploaded:", uploadResult);
+    const fileMessage = {
+      role_id: null,
+      content: `Uploaded: ${uploadResult.filename}`,
+      isSystemMessage: true,
+    };
+    setChatFeed((prevFeed) => [...prevFeed, fileMessage]);
+  };
+
   // Show loading state while auth is being verified
   if (isLoading) {
     return <div>Loading...</div>;
@@ -189,6 +203,7 @@ export default function ChatPage() {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
             />
+            <button onClick={() => setIsModalOpen(true)}>File</button>
             <div id={styles.submit} onClick={handleSendMessage}>
               ➢
             </div>
@@ -198,6 +213,12 @@ export default function ChatPage() {
           </p>
         </div>
       </div>
+      <FileUploadModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        conversationId={activeConversationId}
+        onUploadSuccess={handleFileUpload}
+      />
     </div>
   );
 }

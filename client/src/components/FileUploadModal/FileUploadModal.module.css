@@ -1,0 +1,32 @@
+.overlay {
+  position: fixed;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  bottom: 0px;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: #202123;
+  color: white;
+  padding: 20px;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease;
+  border-radius: 8px;
+  width: 400px;
+}
+
+.error {
+  color: #ff4d4d;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.dragging {
+  border-color: #007bff;
+  background-color: #1a1a1a;
+}
