@@ -4,15 +4,18 @@ import * as conversationService from "../../services/conversationService";
 import styles from "./ChatPage.module.css";
 
 export default function ChatPage() {
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading, isAuthenticated } = useAuth();
 
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [chatFeed, setChatFeed] = useState([]);
   const [inputValue, setInputValue] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
+  // Only fetch conversations when user is authenticated and not loading
   useEffect(() => {
+    if (!isAuthenticated || isLoading) return;
+
     const fetchConversations = async () => {
       try {
         const data = await conversationService.getConversations();
@@ -25,13 +28,13 @@ export default function ChatPage() {
       }
     };
     fetchConversations();
-  }, []);
+  }, [isAuthenticated, isLoading]); // Added dependencies
 
   useEffect(() => {
-    if (!activeConversationId) return;
+    if (!activeConversationId || !isAuthenticated || isLoading) return;
 
     const fetchMessages = async () => {
-      setIsLoading(true);
+      setIsLoadingMessages(true);
       try {
         const data = await conversationService.getMessagesForConversation(
           activeConversationId
@@ -40,23 +43,32 @@ export default function ChatPage() {
       } catch (error) {
         console.error("Failed to fetch messages:", error);
       } finally {
-        setIsLoading(false);
+        setIsLoadingMessages(false);
       }
     };
     fetchMessages();
-  }, [activeConversationId]);
+  }, [activeConversationId, isAuthenticated, isLoading]); // Added dependencies
 
   const handleSendMessage = async () => {
-    console.log("Button clicked!");
-    console.log("inputValue:", inputValue);
-    console.log("activeConversationId:", activeConversationId);
-
     if (!inputValue.trim() || !activeConversationId) {
-      console.log("Early return - missing input or conversation");
-
       return;
     }
-    console.log("Past the early return - about to send message");
+
+    // if no active conversations, create one with the first message
+    let conversationId = activeConversationId;
+    if (!conversationId) {
+      try {
+        const newConvo = await conversationService.createConversation(
+          "New Chat"
+        );
+        setConversations((prev) => [newConvo, ...prev]);
+        setActiveConversationId(newConvo.id);
+        conversationId = newConvo.id;
+      } catch (error) {
+        console.error("Failed to create conversation:", error);
+        return;
+      }
+    }
 
     const userMessage = {
       role_id: user.roleId,
@@ -66,7 +78,7 @@ export default function ChatPage() {
     setChatFeed((prevFeed) => [...prevFeed, userMessage]);
     const currentInput = inputValue;
     setInputValue("");
-    setIsLoading(true);
+    setIsLoadingMessages(true);
 
     try {
       const aiResponse = await conversationService.postMessage(
@@ -78,9 +90,19 @@ export default function ChatPage() {
       console.error("Failed to send message:", error);
       setChatFeed((prevFeed) => prevFeed.slice(0, -1));
     } finally {
-      setIsLoading(false);
+      setIsLoadingMessages(false);
     }
   };
+
+  // Show loading state while auth is being verified
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  // Show nothing if not authenticated (App.jsx will handle redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className={styles.app}>
@@ -114,7 +136,9 @@ export default function ChatPage() {
               <p>{message.content}</p>
             </li>
           ))}
-          {isLoading && <li className={styles.loadingMessage}>Thinking...</li>}
+          {isLoadingMessages && (
+            <li className={styles.loadingMessage}>Thinking...</li>
+          )}
         </ul>
         <div className={styles.bottomSection}>
           <div className={styles.inputContainer}>

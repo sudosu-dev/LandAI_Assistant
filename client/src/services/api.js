@@ -1,6 +1,7 @@
 import axios from "axios";
 
 let logoutCallback = null;
+let isLoggingOut = false; // Prevent multiple logout calls
 
 export const setLogoutCallback = (callback) => {
   logoutCallback = callback;
@@ -28,8 +29,14 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && logoutCallback) {
+    // Only trigger logout on 401 if we have a callback and aren't already logging out
+    if (error.response?.status === 401 && logoutCallback && !isLoggingOut) {
+      isLoggingOut = true;
       logoutCallback();
+      // Reset the flag after a brief delay
+      setTimeout(() => {
+        isLoggingOut = false;
+      }, 1000);
     }
     return Promise.reject(error);
   }

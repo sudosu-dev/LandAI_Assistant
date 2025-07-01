@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
 
   const verifyToken = useCallback(async (tokenToVerify) => {
     try {
+      // Set the authorization header before making the request
       api.defaults.headers.common["Authorization"] = `Bearer ${tokenToVerify}`;
 
       const userData = await authService.verifyToken();
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error("Token verification failed:", error);
 
+      // Clean up on verification failure
       localStorage.removeItem("token");
       delete api.defaults.headers.common["Authorization"];
       setUser(null);
@@ -63,7 +65,7 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, [verifyToken]);
 
-  // sync token with local storage
+  // Sync token with local storage and API headers
   useEffect(() => {
     if (token) {
       localStorage.setItem("token", token);
@@ -80,11 +82,6 @@ export const AuthProvider = ({ children }) => {
       setError(null);
 
       const data = await authService.register(credentials);
-
-      // Optionally auto-login after registration
-      // setToken(data.token);
-      // setUser(data.user);
-
       return data;
     } catch (error) {
       const errorMessage =
@@ -139,10 +136,12 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
+      // Clear all auth state
       setToken(null);
       setUser(null);
       setError(null);
 
+      // Clear local storage and API headers
       localStorage.removeItem("token");
       delete api.defaults.headers.common["Authorization"];
     } catch (error) {
@@ -153,7 +152,7 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token]);
 
-  // send logout event to axios
+  // Set logout callback for axios interceptor
   useEffect(() => {
     setLogoutCallback(logout);
   }, [logout]);
