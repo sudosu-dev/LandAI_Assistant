@@ -72,3 +72,24 @@ export const handleDeleteDocument = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Handles getting a specific document by its ID
+ */
+export const handleGetDocumentById = async (req, res, next) => {
+  try {
+    const { userId } = req.user;
+    const { id: documentId } = req.params;
+
+    const document = await documentService.getDocumentById(userId, documentId);
+
+    if (!document) {
+      return res.status(404).json({ message: "Document not found." });
+    }
+
+    res.status(200).json(document);
+  } catch (error) {
+    console.error("[DocumentController - GetDocumentById] Error:", error);
+    next(error);
+  }
+};

@@ -149,6 +149,26 @@ export const getDocumentsByUserId = async (userId) => {
 };
 
 /**
+ * Retrieves a specific document by ID for a user
+ */
+export const getDocumentById = async (userId, documentId) => {
+  const query = `
+    SELECT id, filename, file_type, file_size, upload_date, file_path
+    FROM documents
+    WHERE user_id = $1 AND id = $2
+  `;
+  const values = [userId, documentId];
+
+  const { rows } = await pool.query(query, values);
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return toCamelCase(rows[0]);
+};
+
+/**
  * Deletes a document from the database and the file system.
  * @param {number} userId - The ID of the user requesting the deletion.
  * @param {number} documentId - The ID of the document to delete.
