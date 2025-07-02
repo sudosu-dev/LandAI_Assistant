@@ -81,3 +81,36 @@ export const getAdvancedChatResponse = async (prompt, options = {}) => {
     );
   }
 };
+
+/**
+ * Gets a structured JSON response from the Gemini API.
+ * @param {string} prompt - The prompt instructing the AI to generate JSON.
+ * @returns {Promise<object>} The parsed JavaScript object from the AI's response.
+ */
+export const getJsonResponseFromAi = async (prompt) => {
+  try {
+    // define a generationConfig object that includes the response_mime_type set to 'application/json'
+    const generationConfig = {
+      response_mime_type: "application/json",
+    };
+
+    // get the gemini-1.5-flash model and pass generationConfig to it
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      generationConfig,
+    });
+
+    // call the model with the user's prompt to get the response
+    const result = await model.generateContent(prompt.trim());
+    const responseText = result.response.text();
+
+    // use JSON.parse to convert the response string into useable object
+    const responseObject = JSON.parse(responseText);
+
+    // return the parsed object
+    return responseObject;
+  } catch (error) {
+    console.error("Error getting or parsing JSON response from AI:", error);
+    throw new Error("Failed to get structured data from AI service.");
+  }
+};
