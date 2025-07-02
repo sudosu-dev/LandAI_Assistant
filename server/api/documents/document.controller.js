@@ -25,12 +25,14 @@ export const handleUploadDocument = async (req, res, next) => {
       conversationId: parseInt(conversationId, 10),
     };
 
-    const newDocument = await documentService.createDocument(
-      userId,
-      documentData
-    );
+    // Wait for document processing to complete
+    const result = await documentService.createDocument(userId, documentData);
 
-    res.status(201).json(newDocument);
+    // Return both document info and the analysis message
+    res.status(201).json({
+      document: result.document,
+      analysisMessage: result.analysisMessage,
+    });
   } catch (error) {
     console.error("[DocumentController - Upload] Error:", error);
     next(error);

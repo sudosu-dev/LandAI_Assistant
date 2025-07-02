@@ -14,7 +14,6 @@ export default function ChatPage() {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Only fetch conversations when user is authenticated and not loading
   useEffect(() => {
     if (!isAuthenticated || isLoading) return;
 
@@ -25,8 +24,6 @@ export default function ChatPage() {
         if (data.length > 0) {
           setActiveConversationId(data[0].id);
         }
-        // Note: If no conversations exist, activeConversationId stays null
-        // and we'll create one when the user sends their first message
       } catch (error) {
         console.error("Failed to fetch conversations:", error);
       }
@@ -54,14 +51,12 @@ export default function ChatPage() {
   }, [activeConversationId, isAuthenticated, isLoading]);
 
   const handleSendMessage = async () => {
-    // Only check if input is empty - allow sending even without active conversation
     if (!inputValue.trim()) {
       return;
     }
 
     let conversationId = activeConversationId;
 
-    // If no active conversation exists, create one
     if (!conversationId) {
       try {
         console.log("Creating new conversation for first message...");
@@ -83,7 +78,6 @@ export default function ChatPage() {
       content: inputValue,
     };
 
-    // Add user message to chat feed immediately
     setChatFeed((prevFeed) => [...prevFeed, userMessage]);
     const currentInput = inputValue;
     setInputValue("");
@@ -99,9 +93,7 @@ export default function ChatPage() {
       setChatFeed((prevFeed) => [...prevFeed, aiResponse]);
     } catch (error) {
       console.error("Failed to send message:", error);
-      // Remove the user message from feed if sending failed
       setChatFeed((prevFeed) => prevFeed.slice(0, -1));
-      // Restore the input value
       setInputValue(currentInput);
     } finally {
       setIsLoadingMessages(false);
@@ -109,23 +101,24 @@ export default function ChatPage() {
   };
 
   const handleFileUpload = (uploadResult) => {
-    console.log("handleFileUpload called with:", uploadResult); // debug log
+    console.log("handleFileUpload called with:", uploadResult);
 
-    console.log("File uploaded:", uploadResult);
     const fileMessage = {
       role_id: null,
-      content: `Uploaded: ${uploadResult.filename}`,
+      content: `📎 Uploaded: ${uploadResult.document.filename}`,
       isSystemMessage: true,
     };
     setChatFeed((prevFeed) => [...prevFeed, fileMessage]);
+
+    if (uploadResult.analysisMessage) {
+      setChatFeed((prevFeed) => [...prevFeed, uploadResult.analysisMessage]);
+    }
   };
 
-  // Show loading state while auth is being verified
   if (isLoading) {
     return <div>Loading...</div>;
   }
 
-  // Show nothing if not authenticated (App.jsx will handle redirect)
   if (!isAuthenticated) {
     return null;
   }
