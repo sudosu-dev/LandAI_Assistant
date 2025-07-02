@@ -38,28 +38,7 @@ export const createDocument = async (userId, documentData) => {
     throw new Error("Failed to save document metadata to the database.");
   }
 
-  // Process the document and post analysis to chat
-  processDocumentAndNotify(
-    userId,
-    conversationId,
-    filename,
-    filePath,
-    fileType
-  );
-
-  return toCamelCase(newDocument);
-};
-
-/**
- * Process document and post analysis results to chat
- */
-async function processDocumentAndNotify(
-  userId,
-  conversationId,
-  filename,
-  filePath,
-  fileType
-) {
+  // CHANGE: Wait for processing to complete and return the analysis
   try {
     console.log(`Starting document processing for: ${filename}`);
 
@@ -102,33 +81,31 @@ async function processDocumentAndNotify(
       agentType: "lease_analyzer",
     };
 
-    await messageService.createMessage(userId, messageData);
+    const analysisMessage = await messageService.createMessage(
+      userId,
+      messageData
+    );
     console.log(`Analysis posted to chat for: ${filename}`);
+
+    // Return both document metadata and the analysis message
+    return {
+      document: toCamelCase(newDocument),
+      analysisMessage: analysisMessage,
+    };
   } catch (error) {
     console.error("Document processing failed:", error);
 
-    // Post error message to chat
-    try {
-      const roleResult = await pool.query(
-        "SELECT id FROM roles WHERE name = 'assistant'"
-      );
-      if (roleResult.rows.length > 0) {
-        const assistantRoleId = roleResult.rows[0].id;
-
-        const errorMessage = {
-          conversationId,
-          roleId: assistantRoleId,
-          content: `❌ Failed to process ${filename}. ${error.message}`,
-          agentType: "coordinator",
-        };
-
-        await messageService.createMessage(userId, errorMessage);
-      }
-    } catch (notificationError) {
-      console.error("Failed to post error notification:", notificationError);
-    }
+    // Still return the document even if processing failed
+    return {
+      document: toCamelCase(newDocument),
+      analysisMessage: {
+        content: `❌ Failed to process ${filename}. ${error.message}`,
+        role_id: null,
+        agent_type: "coordinator",
+      },
+    };
   }
-}
+};
 
 /**
  * Retrieves a list of all documents for a specific user.
