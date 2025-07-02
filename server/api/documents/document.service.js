@@ -4,6 +4,7 @@ import path from "path";
 import { toCamelCase } from "#utils/object.utils";
 import { extractTextFromPDF } from "#api/documents/document-processing.service";
 import { extractLeaseDataWithAI } from "#api/documents/lease-extractor.service";
+import { generateComprehensiveAnalysis } from "#api/documents/lease-analyzer.service";
 import * as messageService from "#api/messages/message.service";
 
 /**
@@ -172,4 +173,77 @@ export const deleteDocumentById = async (userId, documentId) => {
   }
 
   return true;
+};
+
+/**
+ * Triggers a comprehensive analysis on a document and saves it as a message.
+ * @param {number} userId - The ID of the user requesting the analysis.
+ * @param {number} documentId - The ID of the document to analyze.
+ * @param {object} marketContext - User-provided market parameters for the analysis.
+ * @returns {Promise<object>} The newly created analysis message.
+ */
+export const analyzeDocument = async (
+  userId,
+  documentId,
+  marketContext = {}
+) => {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    const docQuery = `SELECT id, conversation_id, file_path, extracted_data FROM documents WHERE id = $1 AND user_id = $2;`;
+    const {
+      rows: [document],
+    } = await client.query(docQuery, [documentId, userId]);
+
+    if (!document) throw new Error("Document not found or user unauthorized.");
+    if (!document.extracted_data)
+      throw new Error("Document has no extracted data to analyze.");
+
+    let leaseText;
+    try {
+      leaseText = await fs.readFile(document.file_path, "utf-8");
+    } catch (fileError) {
+      console.error(`Failed to read file at ${document.file_path}:`, fileError);
+      throw new Error(
+        `Could not read the document file. It may have been moved or deleted.`
+      );
+    }
+
+    const analysisReport = await generateComprehensiveAnalysis(
+      leaseText,
+      document.extracted_data,
+      marketContext
+    );
+
+    const roleResult = await client.query(
+      "SELECT id FROM roles WHERE name = 'assistant'"
+    );
+    if (roleResult.rows.length === 0) {
+      throw new Error(
+        "Configuration error: 'assistant' role not found in database."
+      );
+    }
+    const assistantRoleId = roleResult.rows[0].id;
+
+    const messageData = {
+      conversationId: document.conversation_id,
+      roleId: assistantRoleId,
+      content: analysisReport,
+      agentType: "land_analyzer_pro",
+    };
+    const analysisMessage = await messageService.createMessage(
+      userId,
+      messageData,
+      client
+    );
+
+    await client.query("COMMIT");
+    return analysisMessage;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
 };

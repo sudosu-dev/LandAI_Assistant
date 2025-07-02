@@ -95,3 +95,31 @@ export const handleGetDocumentById = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Handles a request to perform a comprehensive analysis on a document
+ */
+export const handleAnalyzeDocument = async (req, res, next) => {
+  try {
+    const { userId } = req.user;
+    const { id: documentId } = req.params;
+    const { marketContext } = req.body;
+
+    if (!marketContext || typeof marketContext !== "object") {
+      return res
+        .status(400)
+        .json({ message: "A 'marketContext' object is required." });
+    }
+
+    const analysisMessage = await documentService.analyzeDocument(
+      userId,
+      documentId,
+      marketContext
+    );
+
+    res.status(200).json(analysisMessage);
+  } catch (error) {
+    console.error("[DocumentController - Analyze] Error:", error);
+    next(error);
+  }
+};
