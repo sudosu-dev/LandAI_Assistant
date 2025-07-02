@@ -4,6 +4,11 @@
   "imports": {
     "#*": "./*.js"
   },
+  "node-pg-migrate": {
+    "databaseUrl": "postgresql://postgres:1221qaApo@localhost:5432/landai_db",
+    "dir": "db/migrations",
+    "migrationsTable": "pgmigrations"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch --env-file=.env server.js",
@@ -11,7 +16,9 @@
     "db:schema": "psql -d landai_db -f db/schema.sql",
     "db:seed": "node --env-file=.env db/seed.js",
     "db:reset": "npm run db:schema && npm run db:seed",
-    "db:render": "node db/seed.js"
+    "db:render": "node db/seed.js",
+    "migrate": "node --env-file=.env node_modules/node-pg-migrate/bin/node-pg-migrate",
+    "migrate:create": "npm run migrate create --"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -33,6 +40,7 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^9.8.0",
+    "node-pg-migrate": "^8.0.3",
     "supertest": "^7.1.0",
     "vitest": "^3.1.2"
   }

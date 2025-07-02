@@ -2,26 +2,26 @@ import pool from "#db/client";
 import fs from "fs/promises";
 import path from "path";
 import { toCamelCase } from "#utils/object.utils";
-import { processDocument } from "#api/documents/document-processing.service";
+import { extractTextFromPDF } from "#api/documents/document-processing.service";
+import { extractLeaseDataWithAI } from "#api/documents/lease-extractor.service";
 import * as messageService from "#api/messages/message.service";
 
 /**
- * Saves a new document's metadata to the database.
+ * Creates a document record, processes it with AI, and saves the extracted data.
  * @param {number} userId - The ID of the user uploading the document.
  * @param {object} documentData - Object containing the document's metadata.
- * @returns {object} The newly created document record from the database.
+ * @returns {Promise<object>} The created document record and the analysis message.
  */
 export const createDocument = async (userId, documentData) => {
   const { filename, filePath, fileType, fileSize, conversationId } =
     documentData;
 
-  const query = `
+  const insertQuery = `
     INSERT INTO documents (user_id, conversation_id, filename, file_path, file_type, file_size)
     VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING *;
   `;
-
-  const values = [
+  const insertValues = [
     userId,
     conversationId,
     filename,
@@ -29,82 +29,68 @@ export const createDocument = async (userId, documentData) => {
     fileType,
     fileSize,
   ];
-
   const {
     rows: [newDocument],
-  } = await pool.query(query, values);
+  } = await pool.query(insertQuery, insertValues);
 
   if (!newDocument) {
     throw new Error("Failed to save document metadata to the database.");
   }
 
-  // CHANGE: Wait for processing to complete and return the analysis
+  let analysisMessage;
+
   try {
-    console.log(`Starting document processing for: ${filename}`);
+    const leaseText = await extractTextFromPDF(filePath);
 
-    const processedData = await processDocument(filePath, fileType);
+    const extractedJSON = await extractLeaseDataWithAI(leaseText);
 
-    console.log("Document processed successfully:", {
-      filename,
-      textLength: processedData.text.length,
-      leaseTerms: processedData.leaseTerms,
-    });
+    const updateQuery = `
+      UPDATE documents
+      SET extracted_data = $1
+      WHERE id = $2;
+    `;
+    await pool.query(updateQuery, [extractedJSON, newDocument.id]);
 
-    // Get assistant role ID
-    const roleResult = await pool.query(
-      "SELECT id FROM roles WHERE name = 'assistant'"
-    );
-    if (roleResult.rows.length === 0) {
-      throw new Error("Assistant role not found in database");
-    }
-    const assistantRoleId = roleResult.rows[0].id;
+    let analysisContent = `📄 **AI Analysis: ${filename}**\n\nI've analyzed the document and extracted the following key terms:\n\n`;
 
-    // Create analysis message content
-    let analysisContent = `📄 **Document Analysis: ${filename}**\n\n`;
-
-    if (processedData.summary) {
-      analysisContent += processedData.summary;
-    } else {
-      analysisContent += `✅ Successfully processed ${filename}\n`;
-      analysisContent += `📊 Extracted ${processedData.text.length} characters of text\n\n`;
-
-      if (fileType === "application/pdf") {
-        analysisContent += `This appears to be a general document. If this is a lease document, I can help analyze specific terms if you ask me questions about it.`;
+    for (const [key, value] of Object.entries(extractedJSON)) {
+      if (key !== "notes") {
+        const formattedKey = key
+          .replace(/([A-Z])/g, " $1")
+          .replace(/^./, (str) => str.toUpperCase());
+        analysisContent += `• **${formattedKey}**: ${value || "Not Found"}\n`;
       }
     }
 
-    // Post analysis message to chat
+    if (extractedJSON.notes && extractedJSON.notes.length > 0) {
+      analysisContent += `\n**Notes from AI:**\n`;
+      extractedJSON.notes.forEach((note) => (analysisContent += `• ${note}\n`));
+    }
+
+    const roleResult = await pool.query(
+      "SELECT id FROM roles WHERE name = 'assistant'"
+    );
+    const assistantRoleId = roleResult.rows[0].id;
     const messageData = {
       conversationId,
       roleId: assistantRoleId,
       content: analysisContent,
       agentType: "lease_analyzer",
     };
-
-    const analysisMessage = await messageService.createMessage(
-      userId,
-      messageData
-    );
-    console.log(`Analysis posted to chat for: ${filename}`);
-
-    // Return both document metadata and the analysis message
-    return {
-      document: toCamelCase(newDocument),
-      analysisMessage: analysisMessage,
-    };
+    analysisMessage = await messageService.createMessage(userId, messageData);
   } catch (error) {
     console.error("Document processing failed:", error);
-
-    // Still return the document even if processing failed
-    return {
-      document: toCamelCase(newDocument),
-      analysisMessage: {
-        content: `❌ Failed to process ${filename}. ${error.message}`,
-        role_id: null,
-        agent_type: "coordinator",
-      },
+    analysisMessage = {
+      content: `❌ AI analysis failed for ${filename}. The document was saved, but analysis could not be completed.`,
+      role_id: null,
+      agent_type: "coordinator",
     };
   }
+
+  return {
+    document: toCamelCase(newDocument),
+    analysisMessage: analysisMessage,
+  };
 };
 
 /**
