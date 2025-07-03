@@ -17,14 +17,14 @@ export const getMessagesByConversationId = async (userId, conversationId) => {
   return rows;
 };
 
-export const createMessage = async (userId, messageData) => {
+export const createMessage = async (userId, messageData, client = pool) => {
   const { conversationId, roleId, content, agentType } = messageData;
 
   const conversationCheckQuery = `
         SELECT id FROM conversations WHERE user_id = $1 AND id = $2
     `;
   const conversationCheckValues = [userId, conversationId];
-  const conversationCheckResult = await pool.query(
+  const conversationCheckResult = await client.query(
     conversationCheckQuery,
     conversationCheckValues
   );
@@ -47,7 +47,7 @@ export const createMessage = async (userId, messageData) => {
 
   const {
     rows: [newMessage],
-  } = await pool.query(insertQuery, insertValues);
+  } = await client.query(insertQuery, insertValues);
 
   if (!newMessage) {
     throw new Error("Failed to create message in the database.");

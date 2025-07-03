@@ -4,6 +4,7 @@ import {
   handleGetDocuments,
   handleDeleteDocument,
   handleGetDocumentById,
+  handleAnalyzeDocument,
 } from "#api/documents/document.controller";
 import { authenticateToken } from "#middleware/auth.middleware";
 import upload from "#middleware/upload.middleware";
@@ -16,5 +17,6 @@ router.get("/", handleGetDocuments);
 router.post("/upload", upload.single("document"), handleUploadDocument);
 router.get("/:id", handleGetDocumentById);
 router.delete("/:id", handleDeleteDocument);
+router.post(":id/analyze", handleAnalyzeDocument);
 
 export default router;
