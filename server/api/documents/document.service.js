@@ -13,85 +13,181 @@ import * as messageService from "#api/messages/message.service";
  * @param {object} documentData - Object containing the document's metadata.
  * @returns {Promise<object>} The created document record and the analysis message.
  */
-export const createDocument = async (userId, documentData) => {
-  const { filename, filePath, fileType, fileSize, conversationId } =
-    documentData;
+// export const createDocument = async (userId, documentData) => {
+//   const { filename, filePath, fileType, fileSize, conversationId } =
+//     documentData;
 
-  const insertQuery = `
-    INSERT INTO documents (user_id, conversation_id, filename, file_path, file_type, file_size)
-    VALUES ($1, $2, $3, $4, $5, $6)
-    RETURNING *;
-  `;
-  const insertValues = [
-    userId,
-    conversationId,
-    filename,
-    filePath,
-    fileType,
-    fileSize,
-  ];
+//   const client = await pool.connect();
+//   try {
+//     await client.query("BEGIN");
+
+//     // Step 1: Create the initial document record
+//     const insertQuery = `
+//       INSERT INTO documents (user_id, conversation_id, filename, file_path, file_type, file_size)
+//       VALUES ($1, $2, $3, $4, $5, $6)
+//       RETURNING *;
+//     `;
+//     const insertValues = [
+//       userId,
+//       conversationId,
+//       filename,
+//       filePath,
+//       fileType,
+//       fileSize,
+//     ];
+//     const {
+//       rows: [newDocument],
+//     } = await client.query(insertQuery, insertValues);
+
+//     if (!newDocument) throw new Error("Failed to save document metadata.");
+
+//     // Step 2: Extract text from the PDF
+//     const leaseText = await fs.readFile(filePath, "utf-8");
+//     console.log("--- Extracted PDF Text ---", leaseText.substring(0, 500)); // debug log
+
+//     // Step 3: Use AI to extract structured JSON data
+//     const extractedJSON = await extractLeaseDataWithAI(leaseText);
+
+//     // Step 4: Save the structured data to the 'documents' table
+//     const updateQuery = `UPDATE documents SET extracted_data = $1 WHERE id = $2;`;
+//     await client.query(updateQuery, [extractedJSON, newDocument.id]);
+
+//     // Step 5: Immediately call the analysis service to get the full report
+//     // We pass an empty object for marketContext to use the built-in defaults
+//     const analysisReport = await generateComprehensiveAnalysis(
+//       leaseText,
+//       extractedJSON,
+//       {}
+//     );
+
+//     // Step 6: Save the final report as a message
+//     const roleResult = await client.query(
+//       "SELECT id FROM roles WHERE name = 'assistant'"
+//     );
+//     if (roleResult.rows.length === 0)
+//       throw new Error("Configuration error: 'assistant' role not found.");
+//     const assistantRoleId = roleResult.rows[0].id;
+
+//     const messageData = {
+//       conversationId,
+//       roleId: assistantRoleId,
+//       content: analysisReport,
+//       agentType: "land_analyzer_pro",
+//     };
+//     const analysisMessage = await messageService.createMessage(
+//       userId,
+//       messageData,
+//       client
+//     );
+
+//     await client.query("COMMIT");
+
+//     return {
+//       document: toCamelCase(newDocument),
+//       analysisMessage: analysisMessage,
+//     };
+//   } catch (error) {
+//     await client.query("ROLLBACK");
+//     console.error("Full document processing pipeline failed:", error);
+//     const errorMessage = {
+//       content: `❌ A critical error occurred during analysis for ${filename}. Please try uploading the document again.`,
+//       role_id: null,
+//       agent_type: "system_error",
+//     };
+//     return { document: null, analysisMessage: errorMessage };
+//   } finally {
+//     client.release();
+//   }
+// };
+
+export const createDocument = async (userId, file, conversationId) => {
   const {
-    rows: [newDocument],
-  } = await pool.query(insertQuery, insertValues);
+    originalname: filename,
+    mimetype: fileType,
+    size: fileSize,
+    buffer: fileBuffer,
+  } = file;
 
-  if (!newDocument) {
-    throw new Error("Failed to save document metadata to the database.");
-  }
-
-  let analysisMessage;
-
+  // ... the rest of the function is the same as the one I sent before,
+  // it just now correctly calls the updated extractTextFromPDF
+  const client = await pool.connect();
   try {
-    const leaseText = await extractTextFromPDF(filePath);
+    await client.query("BEGIN");
+
+    // We no longer save a file_path
+    const insertQuery = `
+      INSERT INTO documents (user_id, conversation_id, filename, file_path, file_type, file_size)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *;
+    `;
+    const insertValues = [
+      userId,
+      conversationId,
+      filename,
+      "in-memory",
+      fileType,
+      fileSize,
+    ];
+    const {
+      rows: [newDocument],
+    } = await client.query(insertQuery, insertValues);
+
+    if (!newDocument) throw new Error("Failed to save document metadata.");
+
+    // Pass the buffer directly to the text extractor
+    const leaseText = await extractTextFromPDF(fileBuffer);
+
+    // --- Add our debug log back in just for this test ---
+    console.log("--- Extracted PDF Text ---", leaseText.substring(0, 500));
 
     const extractedJSON = await extractLeaseDataWithAI(leaseText);
 
-    const updateQuery = `
-      UPDATE documents
-      SET extracted_data = $1
-      WHERE id = $2;
-    `;
-    await pool.query(updateQuery, [extractedJSON, newDocument.id]);
+    const updateQuery = `UPDATE documents SET extracted_data = $1 WHERE id = $2;`;
+    await client.query(updateQuery, [extractedJSON, newDocument.id]);
 
-    let analysisContent = `📄 **AI Analysis: ${filename}**\n\nI've analyzed the document and extracted the following key terms:\n\n`;
+    const analysisReport = await generateComprehensiveAnalysis(
+      leaseText,
+      extractedJSON,
+      {}
+    );
 
-    for (const [key, value] of Object.entries(extractedJSON)) {
-      if (key !== "notes") {
-        const formattedKey = key
-          .replace(/([A-Z])/g, " $1")
-          .replace(/^./, (str) => str.toUpperCase());
-        analysisContent += `• **${formattedKey}**: ${value || "Not Found"}\n`;
-      }
-    }
-
-    if (extractedJSON.notes && extractedJSON.notes.length > 0) {
-      analysisContent += `\n**Notes from AI:**\n`;
-      extractedJSON.notes.forEach((note) => (analysisContent += `• ${note}\n`));
-    }
-
-    const roleResult = await pool.query(
+    const roleResult = await client.query(
       "SELECT id FROM roles WHERE name = 'assistant'"
     );
+    if (roleResult.rows.length === 0)
+      throw new Error("Configuration error: 'assistant' role not found.");
     const assistantRoleId = roleResult.rows[0].id;
+
     const messageData = {
       conversationId,
       roleId: assistantRoleId,
-      content: analysisContent,
-      agentType: "lease_analyzer",
+      content: analysisReport,
+      agentType: "land_analyzer_pro",
     };
-    analysisMessage = await messageService.createMessage(userId, messageData);
-  } catch (error) {
-    console.error("Document processing failed:", error);
-    analysisMessage = {
-      content: `❌ AI analysis failed for ${filename}. The document was saved, but analysis could not be completed.`,
-      role_id: null,
-      agent_type: "coordinator",
-    };
-  }
+    const analysisMessage = await messageService.createMessage(
+      userId,
+      messageData,
+      client
+    );
 
-  return {
-    document: toCamelCase(newDocument),
-    analysisMessage: analysisMessage,
-  };
+    await client.query("COMMIT");
+
+    return {
+      document: toCamelCase(newDocument),
+      analysisMessage: analysisMessage,
+    };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Full document processing pipeline failed:", error);
+    const errorMessage = {
+      content: `❌ A critical error occurred during analysis for ${filename}. Please try uploading the document again.`,
+      role_id: null,
+      agent_type: "system_error",
+    };
+    return { document: null, analysisMessage: errorMessage };
+  } finally {
+    client.release();
+  }
 };
 
 /**

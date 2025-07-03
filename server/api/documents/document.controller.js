@@ -4,35 +4,57 @@ import * as documentService from "./document.service.js";
  * Handles the upload of a new document.
  * This controller is intended to be used AFTER the multer upload middleware.
  */
+// export const handleUploadDocument = async (req, res, next) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({ message: "No file uploaded." });
+//     }
+
+//     const { userId } = req.user;
+//     const { conversationId } = req.body;
+
+//     if (!conversationId) {
+//       return res.status(400).json({ message: "Conversation ID is required." });
+//     }
+
+//     const documentData = {
+//       filename: req.file.originalname,
+//       filePath: req.file.path,
+//       fileType: req.file.mimetype,
+//       fileSize: req.file.size,
+//       conversationId: parseInt(conversationId, 10),
+//     };
+
+//     // Wait for document processing to complete
+//     const result = await documentService.createDocument(userId, documentData);
+
+//     // Return both document info and the analysis message
+//     res.status(201).json({
+//       document: result.document,
+//       analysisMessage: result.analysisMessage,
+//     });
+//   } catch (error) {
+//     console.error("[DocumentController - Upload] Error:", error);
+//     next(error);
+//   }
+// };
 export const handleUploadDocument = async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded." });
     }
-
     const { userId } = req.user;
     const { conversationId } = req.body;
-
     if (!conversationId) {
       return res.status(400).json({ message: "Conversation ID is required." });
     }
-
-    const documentData = {
-      filename: req.file.originalname,
-      filePath: req.file.path,
-      fileType: req.file.mimetype,
-      fileSize: req.file.size,
-      conversationId: parseInt(conversationId, 10),
-    };
-
-    // Wait for document processing to complete
-    const result = await documentService.createDocument(userId, documentData);
-
-    // Return both document info and the analysis message
-    res.status(201).json({
-      document: result.document,
-      analysisMessage: result.analysisMessage,
-    });
+    // Pass the entire file object from multer
+    const result = await documentService.createDocument(
+      userId,
+      req.file,
+      conversationId
+    );
+    res.status(201).json(result);
   } catch (error) {
     console.error("[DocumentController - Upload] Error:", error);
     next(error);
