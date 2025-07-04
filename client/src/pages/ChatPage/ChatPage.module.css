@@ -162,3 +162,9 @@
   max-width: 650px;
   padding: 20px;
 }
+
+.analysisActions {
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #4a4a4a;
+}

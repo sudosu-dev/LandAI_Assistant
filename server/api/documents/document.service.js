@@ -108,13 +108,10 @@ export const createDocument = async (userId, file, conversationId) => {
     buffer: fileBuffer,
   } = file;
 
-  // ... the rest of the function is the same as the one I sent before,
-  // it just now correctly calls the updated extractTextFromPDF
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
-    // We no longer save a file_path
     const insertQuery = `
       INSERT INTO documents (user_id, conversation_id, filename, file_path, file_type, file_size)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -132,18 +129,21 @@ export const createDocument = async (userId, file, conversationId) => {
       rows: [newDocument],
     } = await client.query(insertQuery, insertValues);
 
-    if (!newDocument) throw new Error("Failed to save document metadata.");
+    if (!newDocument) {
+      throw new Error("Failed to save document metadata.");
+    }
 
-    // Pass the buffer directly to the text extractor
     const leaseText = await extractTextFromPDF(fileBuffer);
-
-    // --- Add our debug log back in just for this test ---
-    console.log("--- Extracted PDF Text ---", leaseText.substring(0, 500));
-
     const extractedJSON = await extractLeaseDataWithAI(leaseText);
 
-    const updateQuery = `UPDATE documents SET extracted_data = $1 WHERE id = $2;`;
-    await client.query(updateQuery, [extractedJSON, newDocument.id]);
+    // This is the critical update query
+    const updateQuery = `
+      UPDATE documents 
+      SET extracted_data = $1, full_text = $2 
+      WHERE id = $3;
+    `;
+    // We pass the JSON object and the full text string to the query
+    await client.query(updateQuery, [extractedJSON, leaseText, newDocument.id]);
 
     const analysisReport = await generateComprehensiveAnalysis(
       leaseText,
@@ -158,11 +158,19 @@ export const createDocument = async (userId, file, conversationId) => {
       throw new Error("Configuration error: 'assistant' role not found.");
     const assistantRoleId = roleResult.rows[0].id;
 
+    const finalContext = {
+      oilPrice: 75,
+      gasPrice: 2.75,
+      drillingCost: 10000000,
+    };
+
     const messageData = {
       conversationId,
       roleId: assistantRoleId,
       content: analysisReport,
       agentType: "land_analyzer_pro",
+      documentId: newDocument.id,
+      contextData: finalContext,
     };
     const analysisMessage = await messageService.createMessage(
       userId,
@@ -172,10 +180,14 @@ export const createDocument = async (userId, file, conversationId) => {
 
     await client.query("COMMIT");
 
-    return {
-      document: toCamelCase(newDocument),
-      analysisMessage: analysisMessage,
-    };
+    return [
+      {
+        roleId: null,
+        content: `📎 Uploaded: ${filename}`,
+        agent_type: "system_confirmation",
+      },
+      analysisMessage,
+    ];
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("Full document processing pipeline failed:", error);
@@ -184,12 +196,11 @@ export const createDocument = async (userId, file, conversationId) => {
       role_id: null,
       agent_type: "system_error",
     };
-    return { document: null, analysisMessage: errorMessage };
+    return [errorMessage];
   } finally {
     client.release();
   }
 };
-
 /**
  * Retrieves a list of all documents for a specific user.
  * @param {number} userId - The ID of the user.
@@ -287,46 +298,56 @@ export const analyzeDocument = async (
   try {
     await client.query("BEGIN");
 
-    const docQuery = `SELECT id, conversation_id, file_path, extracted_data FROM documents WHERE id = $1 AND user_id = $2;`;
+    // Step 1: Get the document, now including the full_text from the database
+    const docQuery = `
+      SELECT id, conversation_id, full_text, extracted_data
+      FROM documents
+      WHERE id = $1 AND user_id = $2;
+    `;
     const {
       rows: [document],
     } = await client.query(docQuery, [documentId, userId]);
 
-    if (!document) throw new Error("Document not found or user unauthorized.");
-    if (!document.extracted_data)
-      throw new Error("Document has no extracted data to analyze.");
-
-    let leaseText;
-    try {
-      leaseText = await fs.readFile(document.file_path, "utf-8");
-    } catch (fileError) {
-      console.error(`Failed to read file at ${document.file_path}:`, fileError);
+    if (!document) {
+      throw new Error("Document not found or user unauthorized.");
+    }
+    if (!document.extracted_data || !document.full_text) {
       throw new Error(
-        `Could not read the document file. It may have been moved or deleted.`
+        "Document is missing extracted data or full text for analysis."
       );
     }
 
+    // Step 2: Call our lease analyzer with the data from the database
+    // NO MORE fs.readFile() NEEDED.
     const analysisReport = await generateComprehensiveAnalysis(
-      leaseText,
+      document.full_text,
       document.extracted_data,
       marketContext
     );
 
+    // Step 3: Save the report as a new message
     const roleResult = await client.query(
       "SELECT id FROM roles WHERE name = 'assistant'"
     );
-    if (roleResult.rows.length === 0) {
-      throw new Error(
-        "Configuration error: 'assistant' role not found in database."
-      );
-    }
+    if (roleResult.rows.length === 0)
+      throw new Error("Config error: 'assistant' role not found.");
     const assistantRoleId = roleResult.rows[0].id;
+
+    // Define the context that was used for this specific analysis
+    const finalContext = {
+      oilPrice: 75,
+      gasPrice: 2.75,
+      drillingCost: 10000000,
+      ...marketContext, // User's values override defaults
+    };
 
     const messageData = {
       conversationId: document.conversation_id,
       roleId: assistantRoleId,
       content: analysisReport,
       agentType: "land_analyzer_pro",
+      documentId: document.id,
+      contextData: finalContext,
     };
     const analysisMessage = await messageService.createMessage(
       userId,
