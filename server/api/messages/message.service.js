@@ -1,4 +1,5 @@
 import pool from "#db/client";
+import { toCamelCase } from "#utils/object.utils";
 
 export const getMessagesByConversationId = async (userId, conversationId) => {
   const query = `
@@ -14,17 +15,24 @@ export const getMessagesByConversationId = async (userId, conversationId) => {
   const values = [userId, conversationId];
 
   const { rows } = await pool.query(query, values);
-  return rows;
+  return toCamelCase(rows);
 };
 
-export const createMessage = async (userId, messageData) => {
-  const { conversationId, roleId, content, agentType } = messageData;
+export const createMessage = async (userId, messageData, client = pool) => {
+  const {
+    conversationId,
+    roleId,
+    content,
+    agentType,
+    documentId,
+    contextData,
+  } = messageData;
 
   const conversationCheckQuery = `
-        SELECT id FROM conversations WHERE user_id = $1 AND id = $2
-    `;
+    SELECT id FROM conversations WHERE user_id = $1 AND id = $2
+  `;
   const conversationCheckValues = [userId, conversationId];
-  const conversationCheckResult = await pool.query(
+  const conversationCheckResult = await client.query(
     conversationCheckQuery,
     conversationCheckValues
   );
@@ -36,22 +44,26 @@ export const createMessage = async (userId, messageData) => {
   }
 
   const insertQuery = `
-        INSERT INTO 
-            messages (conversation_id, role_id, content, agent_type)
-        VALUES
-            ($1, $2, $3, $4)
-        RETURNING
-            conversation_id, content, created_at;
-    `;
-  const insertValues = [conversationId, roleId, content, agentType];
+    INSERT INTO messages (conversation_id, role_id, content, agent_type, document_id, context_data)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *;
+  `;
+  const insertValues = [
+    conversationId,
+    roleId,
+    content,
+    agentType,
+    documentId,
+    contextData,
+  ];
 
   const {
     rows: [newMessage],
-  } = await pool.query(insertQuery, insertValues);
+  } = await client.query(insertQuery, insertValues);
 
   if (!newMessage) {
     throw new Error("Failed to create message in the database.");
   }
 
-  return newMessage;
+  return toCamelCase(newMessage);
 };

@@ -30,10 +30,23 @@ export const postMessage = async (conversationId, prompt) => {
 };
 
 /**
- * Creates a new conversation
- * @param {string} title - The title for the new conversation
+ * Creates a new conversation.
+ * @param {string} title - The title for the new conversation.
  */
 export const createConversation = async (title) => {
   const response = await api.post("/conversations", { title });
+  return response.data;
+};
+
+/**
+ * Triggers a re-analysis of a document with custom market context.
+ * @param {string} documentId - The ID of the document to re-analyze.
+ * @param {object} marketContext - The custom market data from the user.
+ * @returns {Promise<object>} The new analysis message from the API.
+ */
+export const reanalyzeDocument = async (documentId, marketContext) => {
+  const response = await api.post(`/documents/${documentId}/analyze`, {
+    marketContext,
+  });
   return response.data;
 };
