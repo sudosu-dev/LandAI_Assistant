@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import api from "../../services/api";
+import Button from "../Button/Button";
 import styles from "./FileUploadModal.module.css";
 
 export default function FileUploadModal({
@@ -11,13 +12,7 @@ export default function FileUploadModal({
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
-  const [isDragging, setIsDragging] = useState(false);
-  console.log("Modal props:", {
-    isOpen,
-    onClose,
-    conversationId,
-    onUploadSuccess,
-  }); // debug log
+  const fileInputRef = useRef(null);
 
   if (!isOpen) {
     return null;
@@ -25,10 +20,20 @@ export default function FileUploadModal({
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
-    setSelectedFile(file);
+    if (file && file.type === "application/pdf") {
+      setSelectedFile(file);
+      setError(null);
+    } else {
+      setError("Please select a valid PDF file.");
+    }
   };
 
   const handleUpload = async () => {
+    if (!selectedFile) {
+      setError("Please select a file to upload.");
+      return;
+    }
+
     setIsUploading(true);
     setError(null);
     try {
@@ -40,77 +45,64 @@ export default function FileUploadModal({
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      console.log("Upload Successful:", response.data);
-      console.log("About to call onUploadSuccess with:", response.data); //debug log
-      console.log("onUploadSuccess exists?", !!onUploadSuccess); //debug log
       onUploadSuccess?.(response.data);
-      console.log("Called onUploadSuccess"); //debug log
-      onClose();
-      setSelectedFile(null);
+      handleClose();
     } catch (error) {
       console.error("Upload failed:", error);
-      setError("Failed to upload file. Please try again.");
+      setError(
+        error.response?.data?.message ||
+          "Failed to upload file. Please try again."
+      );
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
+  const handleClose = () => {
+    setSelectedFile(null);
+    setError(null);
+    setIsUploading(false);
+    onClose();
   };
 
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
+  const triggerFileSelect = () => {
+    fileInputRef.current?.click();
   };
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    console.log("Drop event triggered", e);
-    console.log("DataTransfer:", e.dataTransfer);
-    console.log("Files:", e.dataTransfer?.files);
-    setIsDragging(false);
-    const files = e.dataTransfer?.files;
-    if (files && files.length > 0) {
-      const droppedFile = files[0];
-      console.log("Setting file:", droppedFile);
-      setSelectedFile(droppedFile);
-    } else {
-      console.log("No files found in drop event");
-    }
-  };
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div
-        className={`${styles["modal-content"]} ${
-          isDragging ? styles.dragging : ""
-        }`}
-        onClick={(e) => e.stopPropagation()}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <h3>Upload a file</h3>
-        <label htmlFor="file">
+    <div className={styles.overlay} onClick={handleClose}>
+      <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+        <h3>Upload Lease Document</h3>
+        <p className={styles.modalSubtitle}>Select a PDF file to analyze.</p>
+
+        <div className={styles.uploadArea} onClick={triggerFileSelect}>
           <input
             type="file"
-            name="file"
-            id="file"
-            accept=".pdf"
+            ref={fileInputRef}
             onChange={handleFileSelect}
+            accept=".pdf"
+            style={{ display: "none" }}
           />
-        </label>
-        <button onClick={onClose}>X</button>
-        {selectedFile && <p>Selected: {selectedFile.name}</p>}
-        {selectedFile && (
-          <button onClick={handleUpload} disabled={isUploading}>
-            {isUploading ? "Uploading..." : "Upload"}
-          </button>
-        )}
+          {selectedFile ? (
+            <p className={styles.fileName}>{selectedFile.name}</p>
+          ) : (
+            <p>Click here to select a file</p>
+          )}
+        </div>
+
         {error && <p className={styles.error}>{error}</p>}
+
+        <div className={styles.buttonGroup}>
+          <Button type="button" onClick={handleClose} variant="secondary">
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpload}
+            disabled={isUploading || !selectedFile}
+          >
+            {isUploading ? "Uploading..." : "Upload & Analyze"}
+          </Button>
+        </div>
       </div>
     </div>
   );

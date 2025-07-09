@@ -1,32 +1,74 @@
 .overlay {
   position: fixed;
-  top: 0px;
-  left: 0px;
-  right: 0px;
-  bottom: 0px;
-  background-color: rgba(0, 0, 0, 0.5);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(
+    0,
+    0,
+    0,
+    0.7
+  ); /* Restored semi-transparent background */
   display: flex;
   justify-content: center;
   align-items: center;
+  z-index: 1000; /* This is the key fix for the background */
 }
 
-.modal-content {
-  background-color: #202123;
+.modalContent {
+  background-color: #2d2d2d;
   color: white;
-  padding: 20px;
-  border: 2px solid transparent;
-  transition: border-color 0.2s ease;
+  padding: 25px;
   border-radius: 8px;
-  width: 400px;
+  width: 100%;
+  max-width: 450px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  text-align: center;
+}
+
+.modalContent h3 {
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.modalSubtitle {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #ccc;
+  font-size: 0.9rem;
+}
+
+/* This is the new style for the upload area */
+.uploadArea {
+  border: 2px dashed #555;
+  border-radius: 8px;
+  padding: 30px;
+  margin-bottom: 20px;
+  background-color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.uploadArea:hover {
+  background-color: #3a3a3a;
+  border-color: #777;
+}
+
+.fileName {
+  font-weight: bold;
+  color: #a0cff0;
 }
 
 .error {
   color: #ff4d4d;
-  margin-top: 10px;
-  font-size: 14px;
+  margin-top: 15px;
+  font-size: 0.9rem;
 }
 
-.dragging {
-  border-color: #007bff;
-  background-color: #1a1a1a;
+.buttonGroup {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
 }

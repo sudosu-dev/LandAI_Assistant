@@ -1,25 +1,32 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
 import * as conversationService from "../../services/conversationService";
 import FileUploadModal from "../../components/FileUploadModal/FileUploadModal";
 import AnalysisModal from "../../components/AnalysisModal/AnalysisModal";
 import Button from "../../components/Button/Button";
 import styles from "./ChatPage.module.css";
-console.log("***** Imported Conversation Service: *****", conversationService);
 
 export default function ChatPage() {
-  const { user, logout, isLoading, isAuthenticated } = useAuth();
-
+  const { user, logout } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [chatFeed, setChatFeed] = useState([]);
   const [inputValue, setInputValue] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [analysisTarget, setAnalysisTarget] = useState(null);
+  const chatContainerRef = useRef(null);
 
+  // Scroll to bottom of chat feed when new messages are added
   useEffect(() => {
-    if (!isAuthenticated || isLoading) return;
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop =
+        chatContainerRef.current.scrollHeight;
+    }
+  }, [chatFeed]);
+
+  // Fetch conversations when the component mounts
+  useEffect(() => {
     const fetchConversations = async () => {
       try {
         const data = await conversationService.getConversations();
@@ -32,12 +39,16 @@ export default function ChatPage() {
       }
     };
     fetchConversations();
-  }, [isAuthenticated, isLoading, activeConversationId]);
+  }, []); // Run only once on mount
 
+  // Fetch messages when the active conversation changes
   useEffect(() => {
-    if (!activeConversationId || !isAuthenticated || isLoading) return;
+    if (!activeConversationId) {
+      setChatFeed([]); // Clear feed if no conversation is active
+      return;
+    }
     const fetchMessages = async () => {
-      setIsUploading(true);
+      setIsProcessing(true);
       try {
         const data = await conversationService.getMessagesForConversation(
           activeConversationId
@@ -46,52 +57,67 @@ export default function ChatPage() {
       } catch (error) {
         console.error("Failed to fetch messages:", error);
       } finally {
-        setIsUploading(false);
+        setIsProcessing(false);
       }
     };
     fetchMessages();
-  }, [activeConversationId, isAuthenticated, isLoading]);
+  }, [activeConversationId]);
 
+  // Refactored message sending logic
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
+    const currentInput = inputValue.trim();
     let conversationId = activeConversationId;
+
+    // If no conversation is active, create one first
     if (!conversationId) {
       try {
         const newConvo = await conversationService.createConversation(
-          "New Chat"
+          currentInput
         );
         setConversations((prev) => [newConvo, ...prev]);
         setActiveConversationId(newConvo.id);
         conversationId = newConvo.id;
+        setChatFeed([]); // Start with a clean feed for the new chat
       } catch (error) {
         console.error("Failed to create conversation:", error);
-        return;
+        return; // Stop if we can't create a conversation
       }
     }
 
-    const userMessage = {
-      roleId: user.roleId,
-      content: inputValue,
-    };
+    // Optimistically update UI with user's message
+    const userMessage = { roleId: user.roleId, content: currentInput };
     setChatFeed((prevFeed) => [...prevFeed, userMessage]);
-    const currentInput = inputValue;
     setInputValue("");
-    setIsUploading(true);
+    setIsProcessing(true);
 
+    // Send message to the backend
     try {
       const response = await conversationService.postMessage(
         conversationId,
         currentInput
       );
-      setChatFeed((prevFeed) => [...prevFeed, response.newMessage]);
+      // Replace optimistic message with the real one from the server,
+      // and add the AI's response.
+      setChatFeed((prevFeed) => [
+        ...prevFeed.slice(0, -1),
+        response.userMessage,
+        response.aiMessage,
+      ]);
     } catch (error) {
       console.error("Failed to send message:", error);
+      // Revert optimistic update on failure
       setChatFeed((prevFeed) => prevFeed.slice(0, -1));
       setInputValue(currentInput);
     } finally {
-      setIsUploading(false);
+      setIsProcessing(false);
     }
+  };
+
+  const handleCreateNewChat = () => {
+    setActiveConversationId(null);
+    setInputValue("");
   };
 
   const onUploadSuccess = (messagesFromServer) => {
@@ -108,30 +134,31 @@ export default function ChatPage() {
   const handleAnalysisSubmit = async (newContext) => {
     if (!analysisTarget?.documentId) return;
 
-    setIsUploading(true); // Show the "Thinking..." indicator
-    setAnalysisTarget(null); // Close the modal immediately
+    setIsProcessing(true);
+    setAnalysisTarget(null);
 
     try {
-      // This is the crucial part that calls the API
       const newAnalysisMessage = await conversationService.reanalyzeDocument(
         analysisTarget.documentId,
         newContext
       );
-      // Add the new report to the chat feed
       setChatFeed((prevFeed) => [...prevFeed, newAnalysisMessage]);
     } catch (error) {
       console.error("Failed to re-analyze document:", error);
     } finally {
-      setIsUploading(false); // Hide the "Thinking..." indicator
+      setIsProcessing(false);
     }
   };
 
   return (
     <div className={styles.app}>
       <div className={styles.sidebar}>
-        <ul>
-          {conversations.length > 0 ? (
-            conversations.map((convo) => (
+        <div className={styles.sidebarContent}>
+          <Button onClick={handleCreateNewChat} type="button" fullWidth>
+            + New Chat
+          </Button>
+          <ul className={styles.conversationList}>
+            {conversations.map((convo) => (
               <li
                 key={convo.id}
                 className={
@@ -141,22 +168,17 @@ export default function ChatPage() {
               >
                 {convo.title}
               </li>
-            ))
-          ) : (
-            <li>No conversations yet.</li>
-          )}
-        </ul>
+            ))}
+          </ul>
+        </div>
         <Button onClick={logout}>Logout</Button>
       </div>
 
       <div className={styles.main}>
-        <div className={styles.chatContainer}>
-          <ul className={styles.feed}>
-            {chatFeed.map((message, index) => {
-              // Add this log to inspect the message object in the browser
-              console.log("Rendering message object:", message);
-
-              return (
+        <div className={styles.chatContainer} ref={chatContainerRef}>
+          {chatFeed.length > 0 ? (
+            <ul className={styles.feed}>
+              {chatFeed.map((message, index) => (
                 <li
                   key={index}
                   className={`${styles.chatMessage} ${
@@ -174,28 +196,45 @@ export default function ChatPage() {
                     </div>
                   )}
                 </li>
-              );
-            })}
-            {isUploading && (
-              <li className={styles.loadingMessage}>Thinking...</li>
-            )}
-          </ul>
+              ))}
+              {isProcessing && (
+                <li className={styles.loadingMessage}>Thinking...</li>
+              )}
+            </ul>
+          ) : (
+            <div className={styles.welcomeMessage}>
+              <h1>LandAI Assistant</h1>
+              <p>Your expert partner in land acquisition.</p>
+            </div>
+          )}
         </div>
         <div className={styles.bottomSection}>
           <div className={styles.inputContainer}>
             <input
               type="text"
-              placeholder="Type your message..."
+              placeholder="Type your message or upload a file..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              disabled={isProcessing}
             />
-            <Button onClick={() => setIsModalOpen(true)}>Upload File</Button>
-            <div id={styles.submit} onClick={handleSendMessage}>
+            <Button
+              onClick={() => setIsModalOpen(true)}
+              disabled={isProcessing || !activeConversationId}
+            >
+              Upload File
+            </Button>
+            <div
+              id={styles.submit}
+              onClick={!isProcessing ? handleSendMessage : undefined}
+              className={isProcessing ? styles.disabled : ""}
+            >
               ➢
             </div>
           </div>
-          <p className={styles.info}>LandAI Assistant</p>
+          <p className={styles.info}>
+            LandAI can make mistakes. Consider checking important information.
+          </p>
         </div>
       </div>
 
