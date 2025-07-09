@@ -2,6 +2,8 @@ import { Router } from "express";
 import authRoutes from "#api/auth/auth.route";
 import conversationRoutes from "#api/conversations/conversation.route";
 import documentRoutes from "#api/documents/document.route";
+import marketDataRoutes from "#api/market-data/market-data.route";
+
 const router = Router();
 
 // API V1 root route
@@ -15,5 +17,6 @@ router.get("/", (req, res) => {
 router.use("/auth", authRoutes);
 router.use("/conversations", conversationRoutes);
 router.use("/documents", documentRoutes);
+router.use("/market-data", marketDataRoutes);
 
 export default router;
