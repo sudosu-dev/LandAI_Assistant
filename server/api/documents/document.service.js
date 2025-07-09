@@ -4,7 +4,7 @@ import { extractTextFromPDF } from "#api/documents/document-processing.service";
 import { extractLeaseDataWithAI } from "#api/documents/lease-extractor.service";
 import { generateComprehensiveAnalysis } from "#api/documents/lease-analyzer.service";
 import * as messageService from "#api/messages/message.service";
-import * as marketDataService from "#api/market-data/market-data.service.js";
+import * as marketDataService from "#api/market-data/market-data.service";
 
 /**
  * Creates a document record, processes it with AI, and saves the extracted data.
