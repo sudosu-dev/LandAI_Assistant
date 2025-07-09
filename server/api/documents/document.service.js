@@ -1,11 +1,10 @@
 import pool from "#db/client";
-import fs from "fs/promises";
-import path from "path";
 import { toCamelCase } from "#utils/object.utils";
 import { extractTextFromPDF } from "#api/documents/document-processing.service";
 import { extractLeaseDataWithAI } from "#api/documents/lease-extractor.service";
 import { generateComprehensiveAnalysis } from "#api/documents/lease-analyzer.service";
 import * as messageService from "#api/messages/message.service";
+import * as marketDataService from "#api/market-data/market-data.service.js";
 
 /**
  * Creates a document record, processes it with AI, and saves the extracted data.
@@ -13,93 +12,6 @@ import * as messageService from "#api/messages/message.service";
  * @param {object} documentData - Object containing the document's metadata.
  * @returns {Promise<object>} The created document record and the analysis message.
  */
-// export const createDocument = async (userId, documentData) => {
-//   const { filename, filePath, fileType, fileSize, conversationId } =
-//     documentData;
-
-//   const client = await pool.connect();
-//   try {
-//     await client.query("BEGIN");
-
-//     // Step 1: Create the initial document record
-//     const insertQuery = `
-//       INSERT INTO documents (user_id, conversation_id, filename, file_path, file_type, file_size)
-//       VALUES ($1, $2, $3, $4, $5, $6)
-//       RETURNING *;
-//     `;
-//     const insertValues = [
-//       userId,
-//       conversationId,
-//       filename,
-//       filePath,
-//       fileType,
-//       fileSize,
-//     ];
-//     const {
-//       rows: [newDocument],
-//     } = await client.query(insertQuery, insertValues);
-
-//     if (!newDocument) throw new Error("Failed to save document metadata.");
-
-//     // Step 2: Extract text from the PDF
-//     const leaseText = await fs.readFile(filePath, "utf-8");
-//     console.log("--- Extracted PDF Text ---", leaseText.substring(0, 500)); // debug log
-
-//     // Step 3: Use AI to extract structured JSON data
-//     const extractedJSON = await extractLeaseDataWithAI(leaseText);
-
-//     // Step 4: Save the structured data to the 'documents' table
-//     const updateQuery = `UPDATE documents SET extracted_data = $1 WHERE id = $2;`;
-//     await client.query(updateQuery, [extractedJSON, newDocument.id]);
-
-//     // Step 5: Immediately call the analysis service to get the full report
-//     // We pass an empty object for marketContext to use the built-in defaults
-//     const analysisReport = await generateComprehensiveAnalysis(
-//       leaseText,
-//       extractedJSON,
-//       {}
-//     );
-
-//     // Step 6: Save the final report as a message
-//     const roleResult = await client.query(
-//       "SELECT id FROM roles WHERE name = 'assistant'"
-//     );
-//     if (roleResult.rows.length === 0)
-//       throw new Error("Configuration error: 'assistant' role not found.");
-//     const assistantRoleId = roleResult.rows[0].id;
-
-//     const messageData = {
-//       conversationId,
-//       roleId: assistantRoleId,
-//       content: analysisReport,
-//       agentType: "land_analyzer_pro",
-//     };
-//     const analysisMessage = await messageService.createMessage(
-//       userId,
-//       messageData,
-//       client
-//     );
-
-//     await client.query("COMMIT");
-
-//     return {
-//       document: toCamelCase(newDocument),
-//       analysisMessage: analysisMessage,
-//     };
-//   } catch (error) {
-//     await client.query("ROLLBACK");
-//     console.error("Full document processing pipeline failed:", error);
-//     const errorMessage = {
-//       content: `❌ A critical error occurred during analysis for ${filename}. Please try uploading the document again.`,
-//       role_id: null,
-//       agent_type: "system_error",
-//     };
-//     return { document: null, analysisMessage: errorMessage };
-//   } finally {
-//     client.release();
-//   }
-// };
-
 export const createDocument = async (userId, file, conversationId) => {
   const {
     originalname: filename,
@@ -136,19 +48,37 @@ export const createDocument = async (userId, file, conversationId) => {
     const leaseText = await extractTextFromPDF(fileBuffer);
     const extractedJSON = await extractLeaseDataWithAI(leaseText);
 
-    // This is the critical update query
     const updateQuery = `
       UPDATE documents 
       SET extracted_data = $1, full_text = $2 
       WHERE id = $3;
     `;
-    // We pass the JSON object and the full text string to the query
     await client.query(updateQuery, [extractedJSON, leaseText, newDocument.id]);
+
+    // --- GRACEFUL DEGRADATION START ---
+    let marketContext = {}; // Default to an empty context
+    try {
+      // Find a county name from the extracted data if it exists
+      const county = extractedJSON?.county;
+      if (county) {
+        const marketData = await marketDataService.fetchMarketDataFromApi(
+          county
+        );
+        if (marketData.length > 0) {
+          marketContext.recentSales = marketData;
+        }
+      }
+    } catch (error) {
+      console.warn(
+        `Could not fetch market data for new document: ${error.message}. Proceeding without it.`
+      );
+    }
+    // --- GRACEFUL DEGRADATION END ---
 
     const analysisReport = await generateComprehensiveAnalysis(
       leaseText,
       extractedJSON,
-      {}
+      marketContext
     );
 
     const roleResult = await client.query(
@@ -192,7 +122,7 @@ export const createDocument = async (userId, file, conversationId) => {
     await client.query("ROLLBACK");
     console.error("Full document processing pipeline failed:", error);
     const errorMessage = {
-      content: `❌ A critical error occurred during analysis for ${filename}. Please try uploading the document again.`,
+      content: `A critical error occurred during analysis for ${filename}. Please try uploading the document again.`,
       role_id: null,
       agent_type: "system_error",
     };
@@ -201,6 +131,7 @@ export const createDocument = async (userId, file, conversationId) => {
     client.release();
   }
 };
+
 /**
  * Retrieves a list of all documents for a specific user.
  * @param {number} userId - The ID of the user.
@@ -298,7 +229,6 @@ export const analyzeDocument = async (
   try {
     await client.query("BEGIN");
 
-    // Step 1: Get the document, now including the full_text from the database
     const docQuery = `
       SELECT id, conversation_id, full_text, extracted_data
       FROM documents
@@ -317,15 +247,31 @@ export const analyzeDocument = async (
       );
     }
 
-    // Step 2: Call our lease analyzer with the data from the database
-    // NO MORE fs.readFile() NEEDED.
+    // --- GRACEFUL DEGRADATION START ---
+    let liveMarketContext = {}; // This will hold our live data
+    try {
+      const county = document.extracted_data?.county;
+      if (county) {
+        const marketData = await marketDataService.fetchMarketDataFromApi(
+          county
+        );
+        if (marketData.length > 0) {
+          liveMarketContext.recentSales = marketData;
+        }
+      }
+    } catch (error) {
+      console.warn(
+        `Could not fetch market data for re-analysis: ${error.message}. Proceeding without it.`
+      );
+    }
+    // --- GRACEFUL DEGRADATION END ---
+
     const analysisReport = await generateComprehensiveAnalysis(
       document.full_text,
       document.extracted_data,
-      marketContext
+      liveMarketContext // Pass the live data to the analysis
     );
 
-    // Step 3: Save the report as a new message
     const roleResult = await client.query(
       "SELECT id FROM roles WHERE name = 'assistant'"
     );
@@ -333,12 +279,11 @@ export const analyzeDocument = async (
       throw new Error("Config error: 'assistant' role not found.");
     const assistantRoleId = roleResult.rows[0].id;
 
-    // Define the context that was used for this specific analysis
     const finalContext = {
       oilPrice: 75,
       gasPrice: 2.75,
       drillingCost: 10000000,
-      ...marketContext, // User's values override defaults
+      ...marketContext, // User's custom values from re-analysis override defaults
     };
 
     const messageData = {
