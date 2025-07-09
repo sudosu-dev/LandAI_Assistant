@@ -4,6 +4,7 @@ import * as conversationService from "../../services/conversationService";
 import FileUploadModal from "../../components/FileUploadModal/FileUploadModal";
 import AnalysisModal from "../../components/AnalysisModal/AnalysisModal";
 import Button from "../../components/Button/Button";
+import Tooltip from "../../components/Tooltip/Tooltip";
 import styles from "./ChatPage.module.css";
 
 export default function ChatPage() {
@@ -168,7 +169,11 @@ export default function ChatPage() {
               {chatFeed.map((message, index) => {
                 const isAnalysis = message.agentType === "land_analyzer_pro";
                 const hasMarketData =
-                  isAnalysis && message.contextData?.recentSales;
+                  isAnalysis && message.contextData?.recentSales?.length > 0;
+
+                const tooltipText = hasMarketData
+                  ? `Based on ${message.contextData.recentSales.length} recent sales in this county.`
+                  : "";
 
                 return (
                   <li
@@ -179,13 +184,18 @@ export default function ChatPage() {
                         : styles.assistant
                     }`}
                   >
-                    <p>{message.content}</p>
+                    <pre className={styles.messageContent}>
+                      {message.content}
+                    </pre>
+
                     {isAnalysis && (
                       <div className={styles.analysisActions}>
                         {hasMarketData && (
-                          <div className={styles.marketDataBadge}>
-                            Live Market Data
-                          </div>
+                          <Tooltip text={tooltipText}>
+                            <div className={styles.marketDataBadge}>
+                              ✅ Live Market Data
+                            </div>
+                          </Tooltip>
                         )}
                         <Button onClick={() => handleReanalyzeClick(message)}>
                           Re-analyze
