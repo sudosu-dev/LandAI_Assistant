@@ -167,4 +167,17 @@
   margin-top: 15px;
   padding-top: 10px;
   border-top: 1px solid #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.marketDataBadge {
+  background-color: #2a4a3e;
+  color: #a6f2d6;
+  border: 1px solid #3c6e5a;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 0.75rem;
+  font-weight: bold;
 }

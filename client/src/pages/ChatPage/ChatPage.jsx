@@ -4,6 +4,7 @@ import * as conversationService from "../../services/conversationService";
 import FileUploadModal from "../../components/FileUploadModal/FileUploadModal";
 import AnalysisModal from "../../components/AnalysisModal/AnalysisModal";
 import Button from "../../components/Button/Button";
+import Tooltip from "../../components/Tooltip/Tooltip";
 import styles from "./ChatPage.module.css";
 
 export default function ChatPage() {
@@ -11,13 +12,12 @@ export default function ChatPage() {
   const [conversations, setConversations] = useState([]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [chatFeed, setChatFeed] = useState([]);
-  const [inputValue, setInputValue] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [analysisTarget, setAnalysisTarget] = useState(null);
+  const [inputValue, setInputValue] = useState("");
   const chatContainerRef = useRef(null);
 
-  // Scroll to bottom of chat feed when new messages are added
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop =
@@ -25,7 +25,6 @@ export default function ChatPage() {
     }
   }, [chatFeed]);
 
-  // Fetch conversations when the component mounts
   useEffect(() => {
     const fetchConversations = async () => {
       try {
@@ -39,12 +38,11 @@ export default function ChatPage() {
       }
     };
     fetchConversations();
-  }, []); // Run only once on mount
+  }, []);
 
-  // Fetch messages when the active conversation changes
   useEffect(() => {
     if (!activeConversationId) {
-      setChatFeed([]); // Clear feed if no conversation is active
+      setChatFeed([]);
       return;
     }
     const fetchMessages = async () => {
@@ -63,14 +61,11 @@ export default function ChatPage() {
     fetchMessages();
   }, [activeConversationId]);
 
-  // Refactored message sending logic
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
-
     const currentInput = inputValue.trim();
     let conversationId = activeConversationId;
 
-    // If no conversation is active, create one first
     if (!conversationId) {
       try {
         const newConvo = await conversationService.createConversation(
@@ -79,27 +74,23 @@ export default function ChatPage() {
         setConversations((prev) => [newConvo, ...prev]);
         setActiveConversationId(newConvo.id);
         conversationId = newConvo.id;
-        setChatFeed([]); // Start with a clean feed for the new chat
+        setChatFeed([]);
       } catch (error) {
         console.error("Failed to create conversation:", error);
-        return; // Stop if we can't create a conversation
+        return;
       }
     }
 
-    // Optimistically update UI with user's message
     const userMessage = { roleId: user.roleId, content: currentInput };
     setChatFeed((prevFeed) => [...prevFeed, userMessage]);
     setInputValue("");
     setIsProcessing(true);
 
-    // Send message to the backend
     try {
       const response = await conversationService.postMessage(
         conversationId,
         currentInput
       );
-      // Replace optimistic message with the real one from the server,
-      // and add the AI's response.
       setChatFeed((prevFeed) => [
         ...prevFeed.slice(0, -1),
         response.userMessage,
@@ -107,7 +98,6 @@ export default function ChatPage() {
       ]);
     } catch (error) {
       console.error("Failed to send message:", error);
-      // Revert optimistic update on failure
       setChatFeed((prevFeed) => prevFeed.slice(0, -1));
       setInputValue(currentInput);
     } finally {
@@ -133,10 +123,8 @@ export default function ChatPage() {
 
   const handleAnalysisSubmit = async (newContext) => {
     if (!analysisTarget?.documentId) return;
-
     setIsProcessing(true);
     setAnalysisTarget(null);
-
     try {
       const newAnalysisMessage = await conversationService.reanalyzeDocument(
         analysisTarget.documentId,
@@ -178,25 +166,45 @@ export default function ChatPage() {
         <div className={styles.chatContainer} ref={chatContainerRef}>
           {chatFeed.length > 0 ? (
             <ul className={styles.feed}>
-              {chatFeed.map((message, index) => (
-                <li
-                  key={index}
-                  className={`${styles.chatMessage} ${
-                    message.roleId === user?.roleId
-                      ? styles.user
-                      : styles.assistant
-                  }`}
-                >
-                  <p>{message.content}</p>
-                  {message.agentType === "land_analyzer_pro" && (
-                    <div className={styles.analysisActions}>
-                      <Button onClick={() => handleReanalyzeClick(message)}>
-                        Re-analyze
-                      </Button>
-                    </div>
-                  )}
-                </li>
-              ))}
+              {chatFeed.map((message, index) => {
+                const isAnalysis = message.agentType === "land_analyzer_pro";
+                const hasMarketData =
+                  isAnalysis && message.contextData?.recentSales?.length > 0;
+
+                const tooltipText = hasMarketData
+                  ? `Based on ${message.contextData.recentSales.length} recent sales in this county.`
+                  : "";
+
+                return (
+                  <li
+                    key={index}
+                    className={`${styles.chatMessage} ${
+                      message.roleId === user?.roleId
+                        ? styles.user
+                        : styles.assistant
+                    }`}
+                  >
+                    <pre className={styles.messageContent}>
+                      {message.content}
+                    </pre>
+
+                    {isAnalysis && (
+                      <div className={styles.analysisActions}>
+                        {hasMarketData && (
+                          <Tooltip text={tooltipText}>
+                            <div className={styles.marketDataBadge}>
+                              ✅ Live Market Data
+                            </div>
+                          </Tooltip>
+                        )}
+                        <Button onClick={() => handleReanalyzeClick(message)}>
+                          Re-analyze
+                        </Button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
               {isProcessing && (
                 <li className={styles.loadingMessage}>Thinking...</li>
               )}
