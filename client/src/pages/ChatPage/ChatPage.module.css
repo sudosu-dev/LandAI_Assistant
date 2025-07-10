@@ -181,3 +181,10 @@
   font-size: 0.75rem;
   font-weight: bold;
 }
+
+.messageContent {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: inherit;
+  font-size: inherit;
+}
