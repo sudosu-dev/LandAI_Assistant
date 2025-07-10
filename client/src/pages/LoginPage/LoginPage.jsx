@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import styles from "./LoginPage.module.css";
-console.log(styles);
+import styles from "./AuthForm.module.css"; // Imports the new shared styles
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { user, ...auth } = useAuth();
+  const { user, login } = useAuth(); // Correctly destructure login
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -34,7 +33,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await auth.login(formData);
+      await login(formData);
     } catch (error) {
       setError(
         error.response?.data?.message || error.message || "Failed to login"
@@ -45,10 +44,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className={styles["auth-container"]}>
-      <form className={styles["auth-form"]} onSubmit={handleSubmit}>
-        <h2>Login for LandAI</h2>
-        {error && <p className={styles["error-message"]}>{error}</p>}
+    // 👇 This div gets the main container class
+    <div className={styles.authContainer}>
+      {/* 👇 This form gets the form class */}
+      <form className={styles.authForm} onSubmit={handleSubmit}>
+        <h2>Login to LandAI</h2>
+        {error && <p className={styles.errorMessage}>{error}</p>}
         <input
           type="email"
           name="email"
@@ -68,7 +69,7 @@ export default function LoginPage() {
         <button type="submit" disabled={loading}>
           {loading ? "Logging in..." : "Log In"}
         </button>
-        <p className={styles["auth-switch"]}>
+        <p className={styles.authSwitch}>
           Don't have an account? <Link to="/register">Register</Link>
         </p>
       </form>

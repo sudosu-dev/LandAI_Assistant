@@ -9,6 +9,7 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .modalContent {
@@ -19,6 +20,7 @@
   width: 100%;
   max-width: 450px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--border-color);
 }
 
 .modalContent h3 {
@@ -46,8 +48,8 @@
 .formGroup input {
   padding: 10px;
   border-radius: 5px;
-  border: 1px solid #555;
-  background-color: #333;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-color);
   color: white;
   font-size: 1rem;
 }

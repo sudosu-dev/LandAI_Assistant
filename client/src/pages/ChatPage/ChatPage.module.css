@@ -34,12 +34,21 @@
   margin-bottom: 1rem;
   width: 100%;
   font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.newChatButton:hover {
+  background-color: #5a9ee2;
 }
 
 .logoutButton {
-  background-color: #555;
+  background-color: #444;
   margin-top: 1rem;
   margin-bottom: 0;
+}
+
+.logoutButton:hover {
+  background-color: #555;
 }
 
 .conversationList {
@@ -55,6 +64,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: background-color 0.2s ease;
 }
 
 .conversationItem:hover {
@@ -62,9 +72,9 @@
 }
 
 .conversationItem.active {
-  background-color: var(--primary-color);
+  background-color: #3a3a3a;
+  cursor: default;
 }
-
 .mainContent {
   flex: 1;
   display: flex;
@@ -233,5 +243,22 @@
   }
   .bottomSection {
     padding: 0.5rem;
+  }
+}
+
+.sidebarOverlay {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+}
+
+@media (max-width: 768px) {
+  .sidebarOverlay.open {
+    display: block;
   }
 }
