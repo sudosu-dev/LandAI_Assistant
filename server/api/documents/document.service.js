@@ -123,7 +123,7 @@ export const createDocument = async (userId, file, conversationId) => {
     console.error("Full document processing pipeline failed:", error);
     const errorMessage = {
       content: `A critical error occurred during analysis for ${filename}. Please try uploading the document again.`,
-      role_id: null,
+      roleId: null,
       agent_type: "system_error",
     };
     return [errorMessage];
