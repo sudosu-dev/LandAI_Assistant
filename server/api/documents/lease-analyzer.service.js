@@ -7,8 +7,6 @@ import { getAdvancedChatResponse } from "#api/ai/ai.service";
  * @param {object} marketContext - Contains live market data (e.g., recentSales).
  * @returns {string} The complete, detailed prompt for the AI.
  */
-// server/api/documents/lease-analyzer.service.js
-
 function buildAnalysisPrompt(leaseText, extractedData, marketContext) {
   const jsonDataString = JSON.stringify(extractedData, null, 2);
 
@@ -50,7 +48,9 @@ function buildAnalysisPrompt(leaseText, extractedData, marketContext) {
     ${liveMarketDataSection}
     ---
 
-    Generate a complete report with the following four sections in this exact order. Your analysis must be from the perspective of the ACQUISITION COMPANY (Lessee).
+    First, create a "KEY METRICS" summary table using Markdown. This table should summarize the most important numbers and classifications from your analysis.
+
+    Then, generate the complete four-part report with the following sections in this exact order. Your analysis must be from the perspective of the ACQUISITION COMPANY (Lessee).
 
     **1. 📋 MARKET ANALYSIS:**
     From the Lessee's perspective, compare the lease's bonus and royalty terms to the provided market context. Is the bonus a cost-effective entry point for us? Is the royalty rate a significant long-term liability? Classify the terms as Favorable, Average, or Unfavorable for our company.
