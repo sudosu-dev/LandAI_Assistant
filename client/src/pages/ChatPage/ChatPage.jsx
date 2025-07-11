@@ -182,7 +182,8 @@ export default function ChatPage() {
     try {
       const response = await conversationService.postMessage(
         conversationId,
-        currentInput
+        currentInput,
+        chatFeed.slice(-6)
       );
       setChatFeed((prev) => [
         ...prev.slice(0, -1),

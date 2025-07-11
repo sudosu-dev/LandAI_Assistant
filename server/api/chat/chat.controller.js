@@ -4,7 +4,7 @@ export const handleCreateChat = async (req, res, next) => {
   try {
     const { userId, roleId: userRoleId } = req.user;
     const { id: conversationId } = req.params;
-    const { prompt } = req.body;
+    const { prompt, history = [] } = req.body;
 
     if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
       return res.status(400).json({
@@ -18,6 +18,7 @@ export const handleCreateChat = async (req, res, next) => {
       userRoleId,
       conversationId,
       prompt: prompt.trim(),
+      history,
     };
 
     const aiMessage = await chatService.createChat(chatData);

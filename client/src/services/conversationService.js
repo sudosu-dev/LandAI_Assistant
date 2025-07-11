@@ -21,10 +21,12 @@ export const getMessagesForConversation = async (conversationId) => {
  * Posts a new message to a conversation and gets the AI's response.
  * @param {string} conversationId - The ID of the conversation.
  * @param {string} prompt - The user's message.
+ * @param {Array} history - An array of recent message objects for context.
  */
-export const postMessage = async (conversationId, prompt) => {
+export const postMessage = async (conversationId, prompt, history = []) => {
   const response = await api.post(`/conversations/${conversationId}/chat`, {
     prompt,
+    history,
   });
   return response.data;
 };
