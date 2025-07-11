@@ -14,14 +14,25 @@ if (process.env.NODE_ENV === "development") {
   app.use(cors());
   app.use(morgan("dev"));
 } else {
+  const frontendUrl = process.env.FRONTEND_URL;
+
   const corsOptions = {
-    origin: process.env.FRONTEND_URL,
+    origin: function (origin, callback) {
+      console.log(`[CORS] Request Origin: ${origin}`);
+      console.log(`[CORS] Whitelisted URL: ${frontendUrl}`);
+
+      if (!origin || origin === frontendUrl) {
+        console.log("[CORS] Origin is allowed. Allowing request.");
+        callback(null, true);
+      } else {
+        console.error(
+          "[CORS] Origin does not match whitelist. Blocking request."
+        );
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
   };
-  console.log(
-    `Production mode: Allowing requests from origin: ${process.env.FRONTEND_URL}`
-  );
   app.use(cors(corsOptions));
-  // ----------------------
 }
 
 app.use("/api/v1", apiRouterV1);
