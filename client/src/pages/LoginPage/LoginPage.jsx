@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import styles from "./AuthForm.module.css"; // Imports the new shared styles
+import styles from "./AuthForm.module.css";
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { user, login } = useAuth(); // Correctly destructure login
+  const { user, login } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -44,9 +44,7 @@ export default function LoginPage() {
   };
 
   return (
-    // 👇 This div gets the main container class
     <div className={styles.authContainer}>
-      {/* 👇 This form gets the form class */}
       <form className={styles.authForm} onSubmit={handleSubmit}>
         <h2>Login to LandAI</h2>
         {error && <p className={styles.errorMessage}>{error}</p>}

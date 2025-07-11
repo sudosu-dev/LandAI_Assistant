@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import styles from "../LoginPage/AuthForm.module.css"; // Imports the shared styles
+import styles from "../LoginPage/AuthForm.module.css";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const { register } = useAuth(); // Correctly destructure register
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -46,9 +46,7 @@ export default function RegisterPage() {
   };
 
   return (
-    // 👇 This div gets the main container class
     <div className={styles.authContainer}>
-      {/* 👇 This form gets the form class */}
       <form onSubmit={handleSubmit} className={styles.authForm}>
         <h2>Register for LandAI</h2>
         {error && <p className={styles.errorMessage}>{error}</p>}

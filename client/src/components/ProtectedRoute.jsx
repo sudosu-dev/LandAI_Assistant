@@ -23,11 +23,9 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // Redirect to login if not authenticated
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Render the protected component if authenticated
   return children;
 }
