@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import apiRouterV1 from "#api/index";
+import apiRouterV1 from "#api/index.js";
 
 const app = express();
 
@@ -14,21 +14,17 @@ if (process.env.NODE_ENV === "development") {
   app.use(cors());
   app.use(morgan("dev"));
 } else {
-  const frontendUrl = process.env.FRONTEND_URL;
-  console.log(`Production mode: Whitelisting origin: ${frontendUrl}`);
-
+  // --- THIS IS THE FIX ---
+  // Instead of a custom function, we provide the whitelisted URL directly.
+  // This is the most standard and reliable way to configure CORS.
   const corsOptions = {
-    origin: function (origin, callback) {
-      console.log(`CORS check: Request origin is '${origin}'`);
-
-      if (origin === frontendUrl) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: process.env.FRONTEND_URL,
   };
+  console.log(
+    `Production mode: Allowing requests from origin: ${process.env.FRONTEND_URL}`
+  );
   app.use(cors(corsOptions));
+  // ----------------------
 }
 
 app.use("/api/v1", apiRouterV1);
@@ -48,6 +44,5 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).send("Sorry! Something went wrong.");
 });
-// ---
 
 export default app;
