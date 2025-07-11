@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../../context/AuthContext";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import * as conversationService from "../../services/conversationService";
 import FileUploadModal from "../../components/FileUploadModal/FileUploadModal";
 import AnalysisModal from "../../components/AnalysisModal/AnalysisModal";
@@ -313,9 +315,11 @@ export default function ChatPage() {
 
                 return (
                   <li key={index} className={styles.chatMessage}>
-                    <pre className={styles.messageContent}>
-                      {message.content}
-                    </pre>
+                    <div className={styles.messageContent}>
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {message.content}
+                      </ReactMarkdown>
+                    </div>{" "}
                     {isAnalysis && (
                       <div className={styles.analysisActions}>
                         {hasMarketData && (
