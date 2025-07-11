@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import apiRouterV1 from "#api/index.js";
+import apiRouterV1 from "#api/index";
 
 const app = express();
 
@@ -14,9 +14,6 @@ if (process.env.NODE_ENV === "development") {
   app.use(cors());
   app.use(morgan("dev"));
 } else {
-  // --- THIS IS THE FIX ---
-  // Instead of a custom function, we provide the whitelisted URL directly.
-  // This is the most standard and reliable way to configure CORS.
   const corsOptions = {
     origin: process.env.FRONTEND_URL,
   };
