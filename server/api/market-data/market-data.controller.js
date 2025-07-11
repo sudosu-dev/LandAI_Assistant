@@ -19,7 +19,6 @@ export const handleGetMarketData = async (req, res, next) => {
     });
   } catch (error) {
     console.error(`[MarketDataController] Error:`, error.message);
-    // Pass to the global error handler, which will send a 500 response
     next(error);
   }
 };

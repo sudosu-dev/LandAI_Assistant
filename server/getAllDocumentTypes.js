@@ -16,7 +16,7 @@ async function testWithIndexedDate() {
     const response = await axios.get(apiUrl, {
       params: {
         county: "STEPHENS",
-        indexed_date_start: "2025-06-01", // Try indexed date instead
+        indexed_date_start: "2025-06-01",
         results_per_page: 15,
       },
       auth: {
@@ -28,13 +28,11 @@ async function testWithIndexedDate() {
     const results = response.data || [];
     console.log(`Found ${results.length} total documents`);
 
-    // Check pagination headers
     console.log("\nPagination info:");
     console.log("Total results:", response.headers["api-total-result-count"]);
     console.log("Total pages:", response.headers["api-result-page-count"]);
     console.log("Current page:", response.headers["api-result-page"]);
 
-    // Filter for documents with doc stamps
     const withStamps = results.filter(
       (r) => r.document_stamp_fees_in_cents > 0
     );
@@ -51,7 +49,6 @@ async function testWithIndexedDate() {
       console.log(`---`);
     });
 
-    // Also try searching for the specific document you found manually
     console.log("\n🔍 Searching for specific document I-2025-005632...");
 
     const specificResponse = await axios.get(apiUrl, {

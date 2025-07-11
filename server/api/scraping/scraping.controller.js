@@ -5,17 +5,14 @@ import * as marketDataService from "#api/scraping/market-data.service";
  */
 export const handleScrapeCounty = async (req, res, next) => {
   try {
-    // Get the county from the URL parameter
     const { county } = req.params;
 
     if (!county) {
       return res.status(400).json({ message: "County parameter is required." });
     }
 
-    // Call our scraper service
     const scrapedData = await marketDataService.scrapeCountyRecords(county);
 
-    // If scraping was successful but found no data, it's not an error
     if (scrapedData.length === 0) {
       return res.status(200).json({
         message: `Scraping complete for ${county} County. No valid records found matching the criteria.`,
@@ -23,13 +20,12 @@ export const handleScrapeCounty = async (req, res, next) => {
       });
     }
 
-    // Send the scraped data back as a response
     res.status(200).json({
       message: `Successfully scraped ${scrapedData.length} records for ${county} County.`,
       data: scrapedData,
     });
   } catch (error) {
     console.error(`[ScrapingController] Error:`, error);
-    next(error); // Pass to the global error handler
+    next(error);
   }
 };

@@ -15,7 +15,6 @@ export const handleUserRegistration = async (req, res, next) => {
       company,
     };
 
-    // FIX: Added 'await' to correctly call the async service function
     const registeredUser = await authService.registerUser(registrationData);
 
     res.status(201).json({
@@ -137,7 +136,7 @@ export const handleResetPassword = async (req, res, next) => {
       if (error.message === "Invalid or expired password reset token.") {
         res.status(400).json({ message: error.message });
       } else {
-        next(error); // Pass to a generic error handler
+        next(error);
       }
     } else {
       next(error);

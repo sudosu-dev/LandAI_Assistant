@@ -17,7 +17,7 @@ async function seedDatabase() {
     const rolesData = [
       { name: "admin", permission_level: 1 },
       { name: "user", permission_level: 2 },
-      { name: "assistant", permission_level: 3 }, // Add this line
+      { name: "assistant", permission_level: 3 },
     ];
 
     for (const role of rolesData) {

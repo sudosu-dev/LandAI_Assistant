@@ -1,9 +1,9 @@
-import puppeteer from "puppeteer-extra"; // 👈 Import puppeteer-extra
-import StealthPlugin from "puppeteer-extra-plugin-stealth"; // 👈 Import the stealth plugin
+import puppeteer from "puppeteer-extra";
+import StealthPlugin from "puppeteer-extra-plugin-stealth";
 import pdf from "pdf-parse";
 import axios from "axios";
 
-puppeteer.use(StealthPlugin()); // 👈 Apply the stealth plugin
+puppeteer.use(StealthPlugin());
 
 export const scrapeOccPermits = async (district) => {
   console.log(`Starting STEALTH scrape for District ${district}...`);
@@ -13,7 +13,6 @@ export const scrapeOccPermits = async (district) => {
   let page;
 
   try {
-    // Launch Puppeteer with the stealth plugin active
     browser = await puppeteer.launch({ headless: "new" });
     page = await browser.newPage();
     await page.goto(landingPageUrl, { waitUntil: "networkidle2" });

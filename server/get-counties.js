@@ -1,5 +1,5 @@
 import axios from "axios";
-import "dotenv/config"; // So we can use process.env
+import "dotenv/config";
 
 async function fetchSupportedCounties() {
   const apiKey = process.env.OKCOUNTYRECORDS_API_KEY;

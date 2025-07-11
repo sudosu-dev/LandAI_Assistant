@@ -100,8 +100,8 @@ export const fetchMarketDataFromApi = async (county) => {
   const apiUrl = `https://okcountyrecords.com/api/v1/search`;
   const params = {
     county: upperCounty,
-    type: relevantDeedTypes, // ✅ Search for all relevant deed types
-    indexed_date_start: startDate, // ✅ Search by the reliable indexed_date
+    type: relevantDeedTypes,
+    indexed_date_start: startDate,
   };
 
   try {
@@ -129,7 +129,7 @@ export const fetchMarketDataFromApi = async (county) => {
       if (pricePerAcre) {
         processedResults.push({
           county,
-          transactionDate: record.indexed_date, // Use indexed_date as it's more reliable
+          transactionDate: record.indexed_date,
           docStamps: docStampsInDollars,
           netMineralAcres,
           pricePerAcre: parseFloat(pricePerAcre.toFixed(2)),

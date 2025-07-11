@@ -6,15 +6,12 @@ if (!GEMINI_API_KEY) {
   throw new Error("GEMINI_API_KEY is not defined in environment variables.");
 }
 
-// Create the base AI instance
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
-// Define our custom request options, which include the proxy
 const requestOptions = {
   customClient: axiosWithProxy,
 };
 
-// Get the models, passing in our custom request options
 const model = genAI.getGenerativeModel(
   { model: "gemini-1.5-flash" },
   requestOptions
@@ -53,7 +50,6 @@ export const getAdvancedChatResponse = async (prompt, options = {}) => {
       maxOutputTokens: options.maxTokens || 2048,
       temperature: options.temperature || 0.7,
     };
-    // Get a specific model instance for this advanced request
     const advancedModel = genAI.getGenerativeModel(
       { model: "gemini-1.5-flash", generationConfig },
       requestOptions

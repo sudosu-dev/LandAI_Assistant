@@ -2,18 +2,15 @@ import puppeteer from "puppeteer";
 import * as cheerio from "cheerio";
 import fs from "fs/promises";
 
-// --- ADD THIS MAP AT THE TOP OF THE FILE ---
 const COUNTY_ID_MAP = {
-  CANADIAN: "10", // This was correct
-  KINGFISHER: "37", // This was correct
-  BLAINE: "05", // 👈 Corrected: Requires leading zero
-  GRADY: "27", // This was correct
-  STEPHENS: "68", // This was correct
-  CARTER: "11", // This was correct
-  // Let's add the main one for the demo
+  CANADIAN: "10",
+  KINGFISHER: "37",
+  BLAINE: "05",
+  GRADY: "27",
+  STEPHENS: "68",
+  CARTER: "11",
   OKLAHOMA: "55",
 };
-// -----------------------------------------
 
 export const scrapeCountyRecords = async (county) => {
   console.log(`Starting Puppeteer scrape for ${county} County...`);
@@ -29,7 +26,6 @@ export const scrapeCountyRecords = async (county) => {
   const endDate = new Date().toISOString().split("T")[0];
   const startDate = getPastDate(90);
 
-  // The search parameter is search[county_id], not search[county]
   const searchURL = `https://okcountyrecords.com/search/advanced?utf8=%E2%9C%93&search%5Bcounty_id%5D=${countyId}&search%5Bdocument_type_id%5D=14&search%5Bstart_date%5D=${startDate}&search%5Bend_date%5D=${endDate}&search%5Bmatch%5D=all&commit=Search`;
 
   let browser = null;
@@ -52,8 +48,6 @@ export const scrapeCountyRecords = async (county) => {
     const $ = cheerio.load(html);
     const results = [];
 
-    // The rest of the function remains the same...
-    // The selector "div.search-result" should now find the correct elements
     $("div.search-result").each((index, element) => {
       const resultDiv = $(element);
       const detailsContainer = resultDiv.find(".result-details-container");
@@ -101,7 +95,6 @@ export const scrapeCountyRecords = async (county) => {
   }
 };
 
-// ... (helper functions remain the same) ...
 function findDetail(container, label) {
   let detail = "";
   container.find("strong").each(function () {

@@ -280,7 +280,9 @@ export default function ChatPage() {
         }`}
         onClick={() => setIsSidebarOpen(false)}
       ></div>
+
       <div className={styles.mainContent}>
+        {/* This is the new header section */}
         <div className={styles.chatHeader}>
           <button
             className={styles.menuButton}
@@ -288,6 +290,11 @@ export default function ChatPage() {
           >
             <MenuIcon />
           </button>
+          <img
+            src="/logo.png"
+            alt="LandAI Logo"
+            className={styles.headerLogo}
+          />
           <h2 className={styles.headerTitle}>
             {conversations.find((c) => c.id === activeConversationId)?.title ||
               "New Chat"}
@@ -318,14 +325,13 @@ export default function ChatPage() {
                             </div>
                           </Tooltip>
                         )}
-                        {/* This is the corrected line */}
-                        <Button
+                        <button
                           onClick={() => handleReanalyzeClick(message)}
                           className={styles.reanalyzeButton}
                           title="Re-analyze"
                         >
                           <ReanalyzeIcon />
-                        </Button>
+                        </button>
                       </div>
                     )}
                   </li>

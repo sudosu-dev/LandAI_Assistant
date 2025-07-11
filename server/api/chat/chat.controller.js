@@ -2,7 +2,6 @@ import * as chatService from "#api/chat/chat.service";
 
 export const handleCreateChat = async (req, res, next) => {
   try {
-    // get userId, roleId, conversationId, and prompt
     const { userId, roleId: userRoleId } = req.user;
     const { id: conversationId } = req.params;
     const { prompt } = req.body;

@@ -13,7 +13,6 @@ async function fetchSampleDocuments() {
   try {
     console.log("Fetching sample documents...");
 
-    // Let's try a few different searches to see what we get
     const searches = [
       {
         name: "Oil and Gas Leases - Stephens",
