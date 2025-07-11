@@ -136,6 +136,26 @@
   word-wrap: break-word;
   font-family: inherit;
 }
+
+.messageContent table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.messageContent th,
+.messageContent td {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.messageContent th {
+  background-color: var(--input-color);
+  font-weight: bold;
+}
+
 .bottomSection {
   padding: 1rem;
   border-top: 1px solid var(--border-color);
