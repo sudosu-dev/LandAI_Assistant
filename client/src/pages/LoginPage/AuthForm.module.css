@@ -1,0 +1,87 @@
+.authContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 1rem;
+}
+
+.authForm {
+  background-color: var(--sidebar-color);
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.authForm h2 {
+  color: var(--text-color);
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.authForm input {
+  width: 100%;
+  padding: 12px 15px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-color);
+  color: var(--text-color);
+  font-size: 1rem;
+}
+
+.authForm input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.authForm button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 5px;
+  border: none;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.authForm button:hover:not(:disabled) {
+  background-color: #5a9ee2;
+}
+
+.authForm button:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.errorMessage {
+  color: #ff4d4d;
+  background-color: rgba(255, 77, 77, 0.1);
+  padding: 10px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.authSwitch {
+  color: #ccc;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.authSwitch a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.authSwitch a:hover {
+  text-decoration: underline;
+}

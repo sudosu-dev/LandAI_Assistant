@@ -4,16 +4,12 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(
-    0,
-    0,
-    0,
-    0.7
-  ); /* Restored semi-transparent background */
+  background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000; /* This is the key fix for the background */
+  z-index: 1000;
+  padding: 1rem;
 }
 
 .modalContent {
@@ -25,6 +21,7 @@
   max-width: 450px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
   text-align: center;
+  border: 1px solid var(--border-color);
 }
 
 .modalContent h3 {
@@ -39,13 +36,12 @@
   font-size: 0.9rem;
 }
 
-/* This is the new style for the upload area */
 .uploadArea {
   border: 2px dashed #555;
   border-radius: 8px;
   padding: 30px;
   margin-bottom: 20px;
-  background-color: #333;
+  background-color: var(--input-color);
   cursor: pointer;
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
@@ -57,7 +53,7 @@
 
 .fileName {
   font-weight: bold;
-  color: #a0cff0;
+  color: var(--primary-color);
 }
 
 .error {

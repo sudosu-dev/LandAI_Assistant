@@ -1,4 +1,3 @@
-// import { Request, Response } from "express";
 import jwt from "jsonwebtoken";
 
 /**
@@ -31,16 +30,13 @@ export const authenticateToken = (req, res, next) => {
   try {
     const decodedPayload = jwt.verify(token, jwtSecret);
 
-    // Attach token to request object
     req.user = {
       userId: decodedPayload.userId,
       roleId: decodedPayload.roleId,
     };
 
-    // Pass off to the next middleware route handler
     next();
   } catch (error) {
-    // Handle specific JWT errors
     if (error instanceof jwt.TokenExpiredError) {
       res.status(401).json({ message: "Access denied. Token expired." });
       return;

@@ -55,10 +55,8 @@ export const createDocument = async (userId, file, conversationId) => {
     `;
     await client.query(updateQuery, [extractedJSON, leaseText, newDocument.id]);
 
-    // --- GRACEFUL DEGRADATION START ---
-    let marketContext = {}; // Default to an empty context
+    let marketContext = {};
     try {
-      // Find a county name from the extracted data if it exists
       const county = extractedJSON?.county;
       if (county) {
         const marketData = await marketDataService.fetchMarketDataFromApi(
@@ -73,7 +71,6 @@ export const createDocument = async (userId, file, conversationId) => {
         `Could not fetch market data for new document: ${error.message}. Proceeding without it.`
       );
     }
-    // --- GRACEFUL DEGRADATION END ---
 
     const analysisReport = await generateComprehensiveAnalysis(
       leaseText,
@@ -123,7 +120,7 @@ export const createDocument = async (userId, file, conversationId) => {
     console.error("Full document processing pipeline failed:", error);
     const errorMessage = {
       content: `A critical error occurred during analysis for ${filename}. Please try uploading the document again.`,
-      role_id: null,
+      roleId: null,
       agent_type: "system_error",
     };
     return [errorMessage];
@@ -247,8 +244,7 @@ export const analyzeDocument = async (
       );
     }
 
-    // --- GRACEFUL DEGRADATION START ---
-    let liveMarketContext = {}; // This will hold our live data
+    let liveMarketContext = {};
     try {
       const county = document.extracted_data?.county;
       if (county) {
@@ -264,12 +260,11 @@ export const analyzeDocument = async (
         `Could not fetch market data for re-analysis: ${error.message}. Proceeding without it.`
       );
     }
-    // --- GRACEFUL DEGRADATION END ---
 
     const analysisReport = await generateComprehensiveAnalysis(
       document.full_text,
       document.extracted_data,
-      liveMarketContext // Pass the live data to the analysis
+      liveMarketContext
     );
 
     const roleResult = await client.query(
@@ -283,7 +278,7 @@ export const analyzeDocument = async (
       oilPrice: 75,
       gasPrice: 2.75,
       drillingCost: 10000000,
-      ...marketContext, // User's custom values from re-analysis override defaults
+      ...marketContext,
     };
 
     const messageData = {

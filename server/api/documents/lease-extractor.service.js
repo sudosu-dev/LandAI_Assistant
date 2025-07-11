@@ -55,7 +55,6 @@ export const extractLeaseDataWithAI = async (leaseText) => {
 
   try {
     const extractedData = await getJsonResponseFromAi(prompt);
-    // You could add validation here to ensure the AI output matches the schema
     return extractedData;
   } catch (error) {
     console.error("AI extraction failed in extractLeaseDataWithAI:", error);

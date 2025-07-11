@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import styles from "./RegisterPage.module.css";
+import styles from "../LoginPage/AuthForm.module.css";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -14,7 +14,7 @@ export default function RegisterPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const auth = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -30,7 +30,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await auth.register(formData);
+      await register(formData);
       navigate("/login", {
         state: { message: "Registration successful! Please log in" },
       });
@@ -46,10 +46,10 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className={styles["auth-container"]}>
-      <form onSubmit={handleSubmit} className={styles["auth-form"]}>
+    <div className={styles.authContainer}>
+      <form onSubmit={handleSubmit} className={styles.authForm}>
         <h2>Register for LandAI</h2>
-        {error && <p className={styles["error-message"]}>{error}</p>}
+        {error && <p className={styles.errorMessage}>{error}</p>}
         <input
           type="text"
           name="firstName"
@@ -92,7 +92,7 @@ export default function RegisterPage() {
         <button type="submit" disabled={loading}>
           {loading ? "Registering..." : "Register"}
         </button>
-        <p className={styles["auth-switch"]}>
+        <p className={styles.authSwitch}>
           Already have an account? <Link to="/login">Log In</Link>
         </p>
       </form>
