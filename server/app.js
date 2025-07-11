@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import apiRouterV1 from "#api/index";
+import apiRouterV1 from "#api/index.js";
 
 const app = express();
 
@@ -14,10 +14,14 @@ if (process.env.NODE_ENV === "development") {
   app.use(cors());
   app.use(morgan("dev"));
 } else {
-  const whitelist = [process.env.FRONTEND_URL];
+  const frontendUrl = process.env.FRONTEND_URL;
+  console.log(`Production mode: Whitelisting origin: ${frontendUrl}`);
+
   const corsOptions = {
     origin: function (origin, callback) {
-      if (whitelist.indexOf(origin) !== -1 || !origin) {
+      console.log(`CORS check: Request origin is '${origin}'`);
+
+      if (origin === frontendUrl) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -44,5 +48,6 @@ app.use((err, req, res, next) => {
   console.error(err);
   res.status(500).send("Sorry! Something went wrong.");
 });
+// ---
 
 export default app;
