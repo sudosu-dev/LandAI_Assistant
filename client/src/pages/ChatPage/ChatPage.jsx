@@ -307,9 +307,20 @@ export default function ChatPage() {
           {chatFeed.length > 0 ? (
             <ul className={styles.feed}>
               {chatFeed.map((message, index) => {
-                const isAnalysis = message.agentType === "land_analyzer_pro";
+                // --- This is the new, cleaner structure ---
+
+                // Condition 1: Is this a full, successful analysis report?
+                const isSuccessfulAnalysis =
+                  message.agentType === "land_analyzer_pro";
+
+                // Condition 2: Should we show the "Re-analyze" button?
+                const canReanalyze = !!message.documentId;
+
+                // Condition 3: Should we show the "Live Market Data" badge?
                 const hasMarketData =
-                  isAnalysis && message.contextData?.recentSales?.length > 0;
+                  isSuccessfulAnalysis &&
+                  message.contextData?.recentSales?.length > 0;
+
                 const tooltipText = hasMarketData
                   ? `Based on ${message.contextData.recentSales.length} recent sales.`
                   : "";
@@ -320,9 +331,11 @@ export default function ChatPage() {
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {message.content}
                       </ReactMarkdown>
-                    </div>{" "}
-                    {isAnalysis && (
+                    </div>
+                    {/* The actions container now shows if either action is possible */}
+                    {(canReanalyze || hasMarketData) && (
                       <div className={styles.analysisActions}>
+                        {/* The Market Data badge only shows if it has market data */}
                         {hasMarketData && (
                           <Tooltip text={tooltipText}>
                             <div className={styles.marketDataBadge}>
@@ -330,18 +343,24 @@ export default function ChatPage() {
                             </div>
                           </Tooltip>
                         )}
-                        <button
-                          onClick={() => handleReanalyzeClick(message)}
-                          className={styles.reanalyzeButton}
-                          title="Re-analyze"
-                        >
-                          <ReanalyzeIcon />
-                        </button>
+                        {/* An empty div to push the button to the right */}
+                        {!hasMarketData && <div></div>}
+
+                        {/* The Re-analyze button only shows if it's linked to a document */}
+                        {canReanalyze && (
+                          <button
+                            onClick={() => handleReanalyzeClick(message)}
+                            className={styles.reanalyzeButton}
+                            title="Re-analyze"
+                          >
+                            <ReanalyzeIcon />
+                          </button>
+                        )}
                       </div>
                     )}
                   </li>
                 );
-              })}
+              })}{" "}
               {isProcessing && (
                 <li
                   className={styles.chatMessage}
