@@ -21,12 +21,6 @@ const jsonModel = genAI.getGenerativeModel(
   requestOptions
 );
 
-/**
- * A helper function to automatically retry a function with exponential backoff.
- * @param {Function} fn The async function to retry.
- * @param {number} maxRetries The maximum number of retries.
- * @returns {Promise<any>}
- */
 const retryWithBackoff = async (fn, maxRetries = 3) => {
   let attempt = 0;
   while (attempt < maxRetries) {
@@ -34,8 +28,9 @@ const retryWithBackoff = async (fn, maxRetries = 3) => {
       return await fn();
     } catch (error) {
       attempt++;
+      // Only retry on transient 503 errors
       if (error.status === 503 && attempt < maxRetries) {
-        const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        const delay = Math.pow(2, attempt) * 1000;
         console.warn(
           `AI service unavailable. Retrying in ${
             delay / 1000
@@ -43,6 +38,7 @@ const retryWithBackoff = async (fn, maxRetries = 3) => {
         );
         await new Promise((resolve) => setTimeout(resolve, delay));
       } else {
+        // For all other errors (like 429 quota), fail immediately
         throw error;
       }
     }
@@ -59,12 +55,11 @@ export const getSimpleChatResponse = async (prompt) => {
       return result.response.text();
     });
   } catch (error) {
-    console.error("Error getting response from Gemini API:", error);
-    throw new Error(
-      `Failed to get response from AI service: ${
-        error.message || "Unknown error"
-      }`
+    console.error(
+      "Error in getSimpleChatResponse from Gemini API:",
+      error.message
     );
+    throw error;
   }
 };
 
@@ -86,12 +81,11 @@ export const getAdvancedChatResponse = async (prompt, options = {}) => {
       return result.response.text();
     });
   } catch (error) {
-    console.error("Error getting response from Gemini API:", error);
-    throw new Error(
-      `Failed to get response from AI service: ${
-        error.message || "Unknown error"
-      }`
+    console.error(
+      "Error in getAdvancedChatResponse from Gemini API:",
+      error.message
     );
+    throw error;
   }
 };
 
@@ -103,7 +97,10 @@ export const getJsonResponseFromAi = async (prompt) => {
       return JSON.parse(responseText);
     });
   } catch (error) {
-    console.error("Error getting or parsing JSON response from AI:", error);
-    throw new Error("Failed to get structured data from AI service.");
+    console.error(
+      "Error in getJsonResponseFromAi from Gemini API:",
+      error.message
+    );
+    throw error;
   }
 };

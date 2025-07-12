@@ -21,6 +21,8 @@ export const createDocument = async (userId, file, conversationId) => {
   } = file;
 
   const client = await pool.connect();
+  let docInProgress = null;
+
   try {
     await client.query("BEGIN");
 
@@ -40,12 +42,11 @@ export const createDocument = async (userId, file, conversationId) => {
     const {
       rows: [newDocument],
     } = await client.query(insertQuery, insertValues);
-
-    if (!newDocument) {
-      throw new Error("Failed to save document metadata.");
-    }
+    if (!newDocument) throw new Error("Failed to save document metadata.");
+    docInProgress = newDocument;
 
     const leaseText = await extractTextFromPDF(fileBuffer);
+
     const extractedJSON = await extractLeaseDataWithAI(leaseText);
 
     const updateQuery = `
@@ -66,9 +67,9 @@ export const createDocument = async (userId, file, conversationId) => {
           marketContext.recentSales = marketData;
         }
       }
-    } catch (error) {
+    } catch (marketError) {
       console.warn(
-        `Could not fetch market data for new document: ${error.message}. Proceeding without it.`
+        `Market data fetch failed, proceeding without it: ${marketError.message}`
       );
     }
 
@@ -85,19 +86,13 @@ export const createDocument = async (userId, file, conversationId) => {
       throw new Error("Configuration error: 'assistant' role not found.");
     const assistantRoleId = roleResult.rows[0].id;
 
-    const finalContext = {
-      oilPrice: 75,
-      gasPrice: 2.75,
-      drillingCost: 10000000,
-    };
-
     const messageData = {
       conversationId,
       roleId: assistantRoleId,
       content: analysisReport,
       agentType: "land_analyzer_pro",
       documentId: newDocument.id,
-      contextData: finalContext,
+      contextData: { oilPrice: 75, gasPrice: 2.75, drillingCost: 10000000 },
     };
     const analysisMessage = await messageService.createMessage(
       userId,
@@ -111,24 +106,59 @@ export const createDocument = async (userId, file, conversationId) => {
       {
         roleId: null,
         content: `📎 Uploaded: ${filename}`,
-        agent_type: "system_confirmation",
+        agentType: "system_confirmation",
       },
       analysisMessage,
     ];
   } catch (error) {
-    await client.query("ROLLBACK");
-    console.error("Full document processing pipeline failed:", error);
-    const errorMessage = {
-      content: `A critical error occurred during analysis for ${filename}. Please try uploading the document again.`,
-      roleId: null,
-      agent_type: "system_error",
-    };
-    return [errorMessage];
+    console.error(
+      "An error occurred in the document processing pipeline:",
+      error.message
+    );
+
+    if (docInProgress) {
+      let fallbackContent = "";
+      const errorMessage = error.message.toLowerCase();
+
+      if (errorMessage.includes("quota") || errorMessage.includes("limit")) {
+        fallbackContent = `⚠️ **Analysis Failed: Usage Limit Reached.**\n\nYour daily free token limit has been reached. I was able to process **${filename}**, but I cannot perform the AI analysis at this time.\n\nPlease try again tomorrow, or use the "Re-analyze" button on this message then.`;
+      } else {
+        fallbackContent = `⚠️ **Analysis Incomplete:** The AI service is currently experiencing high demand or a connection issue.\n\nI was able to process your document, **${filename}**, but could not complete the full analysis.\n\nPlease use the "Re-analyze" button on this message in a few minutes to try again.`;
+      }
+
+      const roleResult = await client.query(
+        "SELECT id FROM roles WHERE name = 'assistant'"
+      );
+      const assistantRoleId = roleResult.rows[0].id;
+
+      const fallbackMessageData = {
+        conversationId,
+        roleId: assistantRoleId,
+        content: fallbackContent,
+        agentType: "system_fallback",
+        documentId: docInProgress.id,
+      };
+      const fallbackMessage = await messageService.createMessage(
+        userId,
+        fallbackMessageData,
+        client
+      );
+
+      await client.query("COMMIT");
+      return [fallbackMessage];
+    } else {
+      await client.query("ROLLBACK");
+      const errorMessage = {
+        content: `A critical error occurred while uploading ${filename}. The file could not be saved. Please try again.`,
+        roleId: null,
+        agentType: "system_error",
+      };
+      return [errorMessage];
+    }
   } finally {
     client.release();
   }
 };
-
 /**
  * Retrieves a list of all documents for a specific user.
  * @param {number} userId - The ID of the user.
