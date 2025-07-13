@@ -2,7 +2,7 @@
 
 > AI-powered business intelligence platform for Oklahoma oil and gas land acquisition professionals
 
-[![Demo](https://img.shields.io/badge/Demo-Live-brightgreen)](YOUR_DEMO_URL)
+[![Demo](https://img.shields.io/badge/Demo-Live-brightgreen)](https://landaiassistant.netlify.app/login)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-v18+-green.svg)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-v18+-blue.svg)](https://reactjs.org/)
@@ -11,7 +11,7 @@
 
 LandAI Assistant transforms the slow, manual process of lease evaluation into an instant, data-driven workflow by combining advanced document analysis with live market data. Built specifically for professionals in the Oklahoma oil and gas land acquisition industry, this full-stack AI platform serves as both a technical showcase and a direct proof-of-concept to solve real-world business challenges.
 
-**[🚀 Live Demo](YOUR_DEMO_URL)**
+**[🚀 Live Demo](https://landaiassistant.netlify.app/login)**
 
 ## 📋 Table of Contents
 
