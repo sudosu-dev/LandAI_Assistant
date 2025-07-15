@@ -208,15 +208,11 @@ PORT=5000
 - [ ] Team collaboration tools
 - [ ] Mobile app development
 
-## 🤝 Contributing
+## 📫 Contact
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Matthew Sharp - [Portfolio Site](https://matthewsharp-portfolio.netlify.app/) - matthewsharp.developer@gmail.com
 
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Project Link: [https://github.com/sudosu-dev/LandAI_Assistant](https://github.com/sudosu-dev/LandAI_Assistant)
 
 ## 📄 License
 
