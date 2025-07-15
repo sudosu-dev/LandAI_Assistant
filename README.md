@@ -112,7 +112,7 @@ Complete security infrastructure:
 
 ## 📸 Screenshot
 
-![LandAI Assistant Interface](screenshot.png)
+![LandAI Assistant Interface](./assets/land-ai-home.png)
 _LandAI Assistant chat interface showing AI-powered lease analysis_
 
 ## 🚀 Getting Started
